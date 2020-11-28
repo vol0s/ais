@@ -1,0 +1,541 @@
+#!/bin/bash
+# FIX THIS ISSUES | NON-ACUTE
+#shellcheck disable=SC1091,SC2001,SC2015,SC2153,SC2154,SC2155,SC2181,SC2207
+
+# LOADING SHARED FILE
+
+if [[ -f $(pwd)/shared ]]; then
+    source shared
+else
+    echo "missing file: shared"
+    exit 1
+fi
+
+# UMOUNT PARTITIONS
+
+umount_partitions() {
+    mounted_partitions=($(lsblk | grep "${MOUNTPOINT}" | awk '{print $7}' | sort -r))
+    swapoff -a
+    for i in "${mounted_partitions[@]}"; do
+        umount "$i"
+    done
+}
+
+# CONFIGURE MIRRORLIST
+
+config_mirrorlist() {
+    echo " - Backing up the original mirrorlist..."
+    mv -i /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.orig
+    echo " - Fetching mirrors located in $MIRROR_COUNTRY..."
+    reflector --country "$MIRROR_COUNTRY" --sort rate --save /etc/pacman.d/mirrorlist
+    chmod +r /etc/pacman.d/mirrorlist
+}
+
+# SELECT DEVICE
+
+select_device() {
+    devices_list=($(lsblk -d | awk '{print "/dev/" $1}' | grep 'sd\|hd\|vd\|nvme\|mmcblk'))
+    PS3="$prompt1"
+    echo -e "Attached Devices:\n"
+    lsblk -lnp -I 2,3,8,9,22,34,56,57,58,65,66,67,68,69,70,71,72,91,128,129,130,131,132,133,134,135,259 | awk '{print $1,$4,$6,$7}' | column -t
+    echo -e "\n"
+    echo -e "Select device to partition:\n"
+    select device in "${devices_list[@]}"; do
+        if contains_element "${device}" "${devices_list[@]}"; then
+            break
+        else
+            invalid_option
+        fi
+    done
+    BOOT_MOUNTPOINT=$device
+}
+
+# CREATE PARTITION SCHEME
+
+create_partition_scheme() {
+    LUKS=0
+    LVM=0
+    print_title "[!] CREATING PARTITION SCHEME"
+    partition_layouts=("Default" "LVM" "LVM+LUKS")
+    PS3="$prompt1"
+    echo -e "Select partition scheme:"
+    select OPT in "${partition_layouts[@]}"; do
+        partition_layout=$OPT
+        case "$REPLY" in
+        1)
+            create_partition
+            ;;
+        2)
+            create_partition
+            setup_lvm
+            ;;
+        3)
+            create_partition
+            setup_luks
+            setup_lvm
+            ;;
+        *)
+            invalid_option
+            ;;
+        esac
+        [[ -n $OPT ]] && break
+    done
+}
+
+# SETUP PARTITION
+
+create_partition() {
+    select_device
+    cfdisk "${device}"
+}
+
+# SETUP LUKS
+
+setup_luks() {
+    print_title "[!] SETTING LUKS UP"
+    print_danger "\tDo not use this for boot partitions"
+    block_list=($(lsblk | grep 'part' | awk '{print "/dev/" substr($1,3)}'))
+    PS3="$prompt1"
+    echo -e "Select partition:"
+    select OPT in "${block_list[@]}"; do
+        if contains_element "$OPT" "${block_list[@]}"; then
+            cryptsetup --cipher aes-xts-plain64 --key-size 512 --hash sha512 --iter-time 5000 --use-random --verify-passphrase luksFormat "$OPT"
+            cryptsetup open --type luks "$([[ $TRIM -eq 1 ]] && echo '--allow-discards')" "$OPT" crypt
+            LUKS=1
+            LUKS_DISK=$(echo "${OPT}" | sed 's/\/dev\///')
+            break
+        elif [[ $OPT == "Cancel" ]]; then
+            break
+        else
+            invalid_option
+        fi
+    done
+}
+
+# SETUP LVM
+
+setup_lvm() {
+    print_title "[!] SETTING LVM UP"
+    print_warning "Last partition will take 100% of free space left"
+    if [[ $LUKS -eq 1 ]]; then
+        pvcreate /dev/mapper/crypt
+        vgcreate lvm /dev/mapper/crypt
+    else
+        block_list=($(lsblk | grep 'part' | awk '{print "/dev/" substr($1,3)}'))
+        PS3="$prompt1"
+        echo -e "Select partition:"
+        select OPT in "${block_list[@]}"; do
+            if contains_element "$OPT" "${block_list[@]}"; then
+                pvcreate "$OPT"
+                vgcreate lvm "$OPT"
+                break
+            else
+                invalid_option
+            fi
+        done
+    fi
+    printf "%s" "Enter number of partitions [ex: 2]: "
+    read -r number_partitions
+    i=1
+    while [[ $i -le $number_partitions ]]; do
+        printf "%s" "Enter $iª partition name [ex: home]: "
+        read -r partition_name
+        if [[ $i -eq $number_partitions ]]; then
+            lvcreate -l 100%FREE lvm -n "${partition_name}"
+        else
+            printf "%s" "Enter $iª partition size [ex: 25G, 200M]: "
+            read -r partition_size
+            lvcreate -L "${partition_size}" lvm -n "${partition_name}"
+        fi
+        i=$((i + 1))
+    done
+    LVM=1
+}
+
+# SELECT|FORMAT PARTITIONS
+
+format_partitions() {
+    print_title "[!] FORMATING PARTITIONS"
+    print_danger "\tAll data on the ROOT and SWAP partition will be LOST."
+    i=0
+
+    block_list=($(lsblk | grep 'part\|lvm' | awk '{print substr($1,3)}'))
+
+    # check if there is no partition
+    if [[ ${#block_list[@]} -eq 0 ]]; then
+        echo "No partition found"
+        exit 0
+    fi
+
+    partitions_list=()
+    for OPT in "${block_list[@]}"; do
+        check_lvm=$(echo "$OPT" | grep lvm)
+        if [[ -z $check_lvm ]]; then
+            partitions_list+=("/dev/$OPT")
+        else
+            partitions_list+=("/dev/mapper/$OPT")
+        fi
+    done
+
+    # partitions based on boot system
+    if [[ $UEFI -eq 1 ]]; then
+        partition_name=("root" "EFI" "swap" "another")
+    else
+        partition_name=("root" "swap" "another")
+    fi
+
+    select_filesystem() {
+        filesystems_list=("btrfs" "ext2" "ext3" "ext4" "f2fs" "jfs" "nilfs2" "ntfs" "reiserfs" "vfat" "xfs")
+        PS3="$prompt1"
+        echo -e "Select filesystem:\n"
+        select filesystem in "${filesystems_list[@]}"; do
+            if contains_element "${filesystem}" "${filesystems_list[@]}"; then
+                break
+            else
+                invalid_option
+            fi
+        done
+    }
+
+    disable_partition() {
+        #remove the selected partition from list
+        unset partitions_list["${partition_number}"]
+        partitions_list=("${partitions_list[@]}")
+        #increase i
+        [[ ${partition_name[i]} != another ]] && i=$((i + 1))
+    }
+
+    format_partition() {
+        read_input_text "Confirm format $1 partition"
+        if [[ $OPTION == y ]]; then
+            [[ -z $3 ]] && select_filesystem || filesystem=$3
+            mkfs."${filesystem}" "$1" \
+                $([[ ${filesystem} == xfs || ${filesystem} == btrfs || ${filesystem} == reiserfs ]] && echo "-f") \
+                $([[ ${filesystem} == vfat ]] && echo "-F32") \
+                $([[ $TRIM -eq 1 && ${filesystem} == ext4 ]] && echo "-E discard")
+            fsck "$1"
+            mkdir -p "$2"
+            mount -t "${filesystem}" "$1" "$2"
+            disable_partition
+        fi
+    }
+
+    format_swap_partition() {
+        read_input_text "Confirm format $1 partition"
+        if [[ $OPTION == y ]]; then
+            mkswap "$1"
+            swapon "$1"
+            disable_partition
+        fi
+    }
+
+    create_swap() {
+        print_info "[!] Select swap partition: "
+        select partition in "${partitions_list[@]}"; do
+            #get the selected number - 1
+            partition_number=$((REPLY - 1))
+            if contains_element "${partition}" "${partitions_list[@]}"; then
+                format_swap_partition "${partition}"
+            fi
+                break
+        done
+        swap_type="partition"
+    }
+
+    check_mountpoint() {
+        if mount | grep "$2"; then
+            echo " - Successfully mounted"
+            disable_partition "$1"
+        else
+            echo " - WARNING: Not Successfully mounted"
+        fi
+    }
+
+    set_efi_partition() {
+        efi_options=("/boot/efi" "/boot")
+        PS3="$prompt1"
+        echo -e "Select EFI mountpoint:\n"
+        select EFI_MOUNTPOINT in "${efi_options[@]}"; do
+            if contains_element "${EFI_MOUNTPOINT}" "${efi_options[@]}"; then
+                break
+            else
+                invalid_option
+            fi
+        done
+    }
+
+    while true; do
+        PS3="$prompt1"
+        if [[ ${partition_name[i]} == swap ]]; then
+            create_swap
+        else
+            echo -e "Select ${BYellow}${partition_name[i]}${Reset} partition:\n"
+            select partition in "${partitions_list[@]}"; do
+                #get the selected number - 1
+                partition_number=$((REPLY - 1))
+                if contains_element "${partition}" "${partitions_list[@]}"; then
+                    case ${partition_name[i]} in
+                    root)
+                        ROOT_PART=$(echo "${partition}" | sed 's/\/dev\/mapper\///' | sed 's/\/dev\///')
+                        ROOT_MOUNTPOINT=${partition}
+                        format_partition "${partition}" "${MOUNTPOINT}"
+                        ;;
+                    EFI)
+                        set_efi_partition
+                        read_input_text "Format ${partition} partition"
+                        if [[ $OPTION == y ]]; then
+                            format_partition "${partition}" "${MOUNTPOINT}${EFI_MOUNTPOINT}" vfat
+                        else
+                            mkdir -p "${MOUNTPOINT}${EFI_MOUNTPOINT}"
+                            mount -t vfat "${partition}" "${MOUNTPOINT}${EFI_MOUNTPOINT}"
+                            check_mountpoint "${partition}" "${MOUNTPOINT}${EFI_MOUNTPOINT}"
+                        fi
+                        ;;
+                    another)
+                        printf "%s" "Mountpoint [ex: /home]:"
+                        read -r directory
+                        [[ $directory == "/boot" ]] && BOOT_MOUNTPOINT=$(echo "${partition}" | sed 's/[0-9]//')
+                        select_filesystem
+                        read_input_text "Format ${partition} partition"
+                        if [[ $OPTION == y ]]; then
+                            format_partition "${partition}" "${MOUNTPOINT}${directory}" "${filesystem}"
+                        else
+                            read_input_text "Confirm fs=""${filesystem}"" part=""${partition}"" dir=""${directory}"""
+                            if [[ $OPTION == y ]]; then
+                                mkdir -p "${MOUNTPOINT}${directory}"
+                                mount -t "${filesystem}" "${partition}" "${MOUNTPOINT}""${directory}"
+                                check_mountpoint "${partition}" "${MOUNTPOINT}${directory}"
+                            fi
+                        fi
+                        ;;
+                    esac
+                    break
+                else
+                invalid_option
+            fi
+        done
+        fi
+        #check if there is no partitions left
+        if [[ ${#partitions_list[@]} -eq 0 && ${partition_name[i]} != swap ]]; then
+            break
+        elif [[ ${partition_name[i]} == another ]]; then
+            read_input_text "Configure more partitions"
+            [[ $OPTION != y ]] && break
+        fi
+    done
+}
+
+# SELECT LINUX VERSION
+
+select_linux_version() {
+    print_title "[!] SELECTING LINUX VERSION"
+    version_list=("linux (default)" "linux-lts (long term support)" "linux-hardened (security features)" "linux-zen (tuned kernel)")
+    PS3="$prompt1"
+    echo -e "Select linux version to install\n"
+    select VERSION in "${version_list[@]}"; do
+        if contains_element "$VERSION" "${version_list[@]}"; then
+            if [ "linux (default)" == "$VERSION" ]; then
+                pacstrap "${MOUNTPOINT}" base linux linux-headers
+            elif [ "linux-lts (long term support)" == "$VERSION" ]; then
+                pacstrap "${MOUNTPOINT}" base linux-lts linux-lts-headers
+            elif [ "linux-hardened (security features)" == "$VERSION" ]; then
+                pacstrap "${MOUNTPOINT}" base linux-hardened linux-hardened-headers
+            elif [ "linux-zen (tuned kernel)" == "$VERSION" ]; then
+                pacstrap "${MOUNTPOINT}" base linux-zen linux-zen-headers
+            fi
+                pacstrap "${MOUNTPOINT}" \
+                    base-devel cryptsetup lvm2 netctl dhcpcd inetutils jfsutils diffutils e2fsprogs \
+                    less linux-firmware logrotate man-db man-pages mdadm nano sudo  \
+                    perl reiserfsprogs s-nail sysfsutils texinfo usbutils neovim which xfsprogs \
+                    parted btrfs-progs f2fs-tools net-tools git zsh iw wireless_tools \
+                    wpa_supplicant dialog networkmanager
+            break
+        else
+            invalid_option
+        fi
+    done
+}
+
+# INSTALLING BASE SYSTEM
+
+install_base_system() {
+    print_title "[!] INSTALLING BASE SYSTEM"
+    print_info "Installing PGP keyring"
+    pacman -Sy --noconfirm archlinux-keyring
+    print_info "Using the pacstrap script we install the base system. The base-devel package group will be installed also."
+    rm "${MOUNTPOINT}""${EFI_MOUNTPOINT}"/vmlinuz-linux
+    select_linux_version
+    [[ $? -ne 0 ]] && error_msg "Installing base system to ${MOUNTPOINT} failed. Check error messages above."
+
+    local PTABLE=$(parted -sl | grep "gpt")
+    [[ -n $PTABLE ]] && pacstrap "${MOUNTPOINT}" gptfdisk
+    WIRELESS_DEV=$(ip link | grep wl | awk '{print $2}' | sed 's/://' | sed '1!d')
+    if [[ -n $WIRELESS_DEV ]]; then
+        pacstrap "${MOUNTPOINT}" iw wireless_tools wpa_supplicant dialog
+    else
+        WIRED_DEV=$(ip link | grep "ens\|eno\|enp" | awk '{print $2}' | sed 's/://' | sed '1!d')
+        if [[ -n $WIRED_DEV ]]; then
+            arch_chroot "systemctl enable NetworkManager"
+        fi
+    fi
+}
+
+# CONFIGURE KEYMAP
+
+configure_keymap() {
+    print_title "[!] CONFIGURING KEYMAP"
+    #ADD KEYMAP TO THE NEW SETUP
+    echo "KEYMAP=$KEYMAP" > "${MOUNTPOINT}"/etc/vconsole.conf
+    localectl set-x11-keymap $KEYMAP
+    localectl set-keymap $KEYMA
+}
+
+# CONFIGURE FSTAB
+
+configure_fstab() {
+    print_title "[!] GENERATING FSTAB"
+    if [[ ! -f ${MOUNTPOINT}/etc/fstab.aui ]]; then
+        cp "${MOUNTPOINT}"/etc/fstab "${MOUNTPOINT}"/etc/fstab.aui
+    else
+        cp "${MOUNTPOINT}"/etc/fstab.aui "${MOUNTPOINT}"/etc/fstab
+    fi
+    genfstab -U -p "${MOUNTPOINT}" >>"${MOUNTPOINT}"/etc/fstab
+    [[ -f ${MOUNTPOINT}/swapfile ]] && sed -i "s/\\${MOUNTPOINT}//" "${MOUNTPOINT}"/etc/fstab
+}
+
+# CONFIGURE HOSTNAME
+
+configure_hostname() {
+    print_title "[!] CONFIGURING HOSTNAME"
+    echo "$HOSTNAME" >"${MOUNTPOINT}"/etc/hostname
+    if [[ ! -f ${MOUNTPOINT}/etc/hosts.aui ]]; then
+        cp "${MOUNTPOINT}"/etc/hosts "${MOUNTPOINT}"/etc/hosts.aui
+    else
+        cp "${MOUNTPOINT}"/etc/hosts.aui "${MOUNTPOINT}"/etc/hosts
+    fi
+    arch_chroot "sed -i '/127.0.0.1/s/$/ '${host_name}'/' /etc/hosts"
+    arch_chroot "sed -i '/::1/s/$/ '${host_name}'/' /etc/hosts"
+}
+
+# CONFIGURE TIMEZONE
+
+configure_timezone() {
+    print_title "[!] CONFIGURING TIMEZONE"
+    arch_chroot "ln -sf /usr/share/zoneinfo/${TIMEZONE_PATH} /etc/localtime"
+    arch_chroot "sed -i '/#NTP=/d' /etc/systemd/timesyncd.conf"
+    arch_chroot "sed -i 's/#Fallback//' /etc/systemd/timesyncd.conf"
+    arch_chroot "echo \"FallbackNTP=${NTP_STRING}\" >> /etc/systemd/timesyncd.conf"
+    arch_chroot "systemctl enable systemd-timesyncd.service"
+}
+
+# CONFIGURE HARDWARECLOCK
+
+configure_hardwareclock() {
+    print_title "[!] CONFIGURING HARDWARE CLOCK TIME"
+    print_info "This is set in /etc/adjtime. Set the hardware clock mode uniformly between your operating systems on the same machine. Otherwise, they will overwrite the time and cause clock shifts (which can cause time drift correction to be miscalibrated)."
+    arch_chroot "hwclock --systohc --localtime"
+}
+
+# CONFIGURE LOCALE
+
+configure_locale() {
+    print_title "[!] GENERATING LOCALES"
+    echo 'LANG="'"$LOCALE_GEN"'"' > "${MOUNTPOINT}"/etc/locale.conf
+    arch_chroot "sed -i 's/#\('${LOCALE_GEN}'\)/\1/' /etc/locale.gen"
+    arch_chroot "locale-gen"
+}
+
+# CONFIGURE MKINITCPIO
+
+configure_mkinitcpio() {
+    print_title "[!] GENERATING initrd"
+    [[ $LUKS -eq 1 ]] && sed -i '/^HOOK/s/block/block keymap encrypt/' "${MOUNTPOINT}"/etc/mkinitcpio.conf
+    [[ $LVM -eq 1 ]] && sed -i '/^HOOK/s/filesystems/lvm2 filesystems/' "${MOUNTPOINT}"/etc/mkinitcpio.conf
+    if [ "$(arch-chroot "${MOUNTPOINT}" ls /boot | grep hardened -c)" -gt "0" ]; then
+        arch_chroot "mkinitcpio -p linux-hardened"
+    elif [ "$(arch-chroot "${MOUNTPOINT}" ls /boot | grep lts -c)" -gt "0" ]; then
+        arch_chroot "mkinitcpio -p linux-lts"
+    elif [ "$(arch-chroot "${MOUNTPOINT}" ls /boot | grep zen -c)" -gt "0" ]; then
+        arch_chroot "mkinitcpio -p linux-zen"
+    else
+        arch_chroot "mkinitcpio -p linux"
+    fi
+}
+
+# INSTALL BOOTLOADER
+
+install_bootloader() {
+    print_title "[!] INSTALLING BOOTLOADER"
+    print_warning "\tROOT Partition: ${ROOT_MOUNTPOINT}"
+    if [[ $UEFI -eq 1 ]]; then
+        print_warning "\tUEFI Mode Detected"
+    else
+        print_warning "\tBIOS Mode Detected"
+    fi
+    echo -e "Install bootloader:\n"
+    pacstrap "${MOUNTPOINT}" grub os-prober
+    [[ $UEFI -eq 1 ]] && pacstrap "${MOUNTPOINT}" efibootmgr dosfstools
+}
+
+# CONFIGURE BOOTLOADER
+
+configure_bootloader() {
+    print_title "[!] CONFIGURING GRUB 2"
+    if [[ $LUKS -eq 1 ]]; then
+        sed -i -e 's/GRUB_CMDLINE_LINUX="\(.\+\)"/GRUB_CMDLINE_LINUX="\1 cryptdevice=\/dev\/'"${LUKS_DISK}"':crypt"/g' -e 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="cryptdevice=\/dev\/'"${LUKS_DISK}"':crypt"/g' "${MOUNTPOINT}"/etc/default/grub
+    fi
+    if [[ $UEFI -eq 1 ]]; then
+        arch_chroot "grub-install --target=x86_64-efi --efi-directory=${EFI_MOUNTPOINT} --bootloader-id=arch_grub --recheck"
+    else
+        arch_chroot "grub-install --target=i386-pc --recheck --debug ${BOOT_MOUNTPOINT}"
+    fi
+    arch_chroot "grub-mkconfig -o /boot/grub/grub.cfg"
+}
+
+# ROOT PASSWORD
+
+root_password() {
+    print_title "[!] ROOT PASSWORD"
+    arch_chroot "passwd"
+}
+
+# NEW USER
+
+new_user() {
+    print_title "[!] NEW USER $USERNAME"
+    arch_chroot "useradd -m -g users -G wheel -s /bin/zsh \"${USERNAME}\""
+    arch_chroot "passwd \"${USERNAME}\""
+    arch_chroot "sed -i '82 s/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/g' /etc/sudoers"
+}
+
+# FINISH
+
+finish() {
+    print_title "[!] INSTALL COMPLETED"
+    print_warning "\nA copy of the AUI will be placed in /home/$USERNAME directory of your new system"
+    umount_partitions
+    poweroff
+}
+
+check_archlinux
+check_boot_system
+check_connection
+check_trim
+package_install "$EDITOR"
+config_mirrorlist
+umount_partitions
+create_partition_scheme
+format_partitions
+install_base_system
+configure_keymap
+configure_fstab
+configure_hostname
+configure_timezone
+configure_hardwareclock
+configure_locale
+configure_mkinitcpio
+install_bootloader
+configure_bootloader
+root_password
+new_user
+finish

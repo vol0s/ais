@@ -1,0 +1,208 @@
+#!/bin/bash
+
+#shellcheck disable=SC2010
+
+# LOADING SHARED FILE
+
+if [[ -f $(pwd)/shared ]]; then
+    source shared
+else
+    echo "missing file: shared"
+    exit 1
+fi
+
+install_os_utils() {
+    sudo pacman -Sy --noconfirm cmake bc rsync grsync mlocate bash-completion pkgstats git go curl wget zsh \
+                    atop htop ntop clamav neofetch zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip \
+                    dosfstools exfat-utils f2fs-tools fuse fuse-exfat autofs mtpfs cmus shellcheck jq polkit-mate \
+                    molecule playerctl firefox caja mat2 firejail ebtables dnsmasq meson ninja gtkmm3
+}
+
+install_nfs() {
+    sudo systemctl enable rpcbind
+    sudo systemctl enable nfs-client.target
+    sudo systemctl enable remote-fs.target
+}
+
+install_secpack() {
+    sudo systemctl enable clamav-daemon
+}
+
+# Install audio utilities
+
+install_audio() {
+    sudo pacman -Sy --noconfirm alsa-utils alsa-plugins pulseaudio pulseaudio-alsa pavucontrol
+}
+
+# Install Blutooth
+
+install_bluetooth() {
+    BLZ=$(dmesg | grep Blue | wc -l)
+    if [[ $BLZ -gt 0 ]]; then
+        sudo pacman -Sy --noconfirm bluez bluez-utils pulseaudio-bluetooth blueman
+        syudo systemctl enable bluetooth
+    fi
+}
+
+# Install colored utilities
+
+install_colored() {
+    sudo pacman -Sy --noconfirm lsd bat grc
+}
+
+# Install Amd GPU
+
+install_gpu() {
+    read -p "Want to install AMD GPU? [Y/n]" -n 1 -r
+    echo
+    REPLY=${REPLY:-Y}
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        sudo pacman -Sy --noconfirm xf86-video-amdgpu vulkan-radeon vulkan-tools mesa-libgl mesa-vdpau libvdpau-va-gl
+        add_module "amdgpu radeon" "ati"
+        if [ "$(ls /boot | grep hardened -c)" -gt "0" ]; then
+            sudo mkinitcpio -p linux-hardened
+        elif [ "$(ls /boot | grep lts -c)" -gt "0" ]; then
+            sudo mkinitcpio -p linux-lts
+        elif [ "$(ls /boot | grep zen -c)" -gt "0" ]; then
+            sudo mkinitcpio -p linux-zen
+        else
+            sudo mkinitcpio -p linux
+        fi
+    fi
+}
+
+# Install Yay
+
+instal_yay() {
+    cd /tmp
+    git clone https://aur.archlinux.org/yay.git
+    cd yay
+    makepkg -csi --noconfirm
+    cd ..
+    rm -rf yay
+}
+
+# Installing oh-my-zsh and plugins
+
+install_zsh_plugins() {
+    sh -c \\"$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)\\"
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
+    git clone https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-completions
+    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+}
+
+# Copying dotfiles
+
+cd "$HOME"
+cp -r dotfiles/.config .
+cp -r dotfiles/.images .
+cp dotfiles/.zshrc .
+
+# Configuring sddm
+
+configure_sddm() {
+    echo "test"
+    #sudo pacman -Sy qt5-graphicaleffects
+    #git clone https://github.com/RadRussianRus/sddm-slice.git
+    #sed -i '3 s/background=/background=~\/.images\/AbstractViolet.png/g' sddm-slice/theme.conf
+    #sudo cp -r sddm-slice /usr/share/sddm/themes/sddm-slice
+    #rm -rf sddm-slice
+    #sudo mkdir /etc/sddm.conf.d
+    #sudo cp /usr/lib/sddm/sddm.conf.d/default.conf /etc/sddm.conf.d/
+    #sudo sed -i '33 s/Current=/Current=sddm-slice/g' /etc/sddm.conf.d/default.conf
+}
+
+# Configuring DNS In order to work properly with vpns.
+
+configure_dns() {
+    sudo rm /etc/resolv.conf
+    sudo ln -s /run/NetworkManager/resolv.conf /etc/resolv.conf
+    echo "enabled=false" >> /usr/lib/NetworkManager/conf.d/20-connectivity.conf
+}
+
+# Install Virtualization
+
+install_virtualbox() {
+    echo "test"
+}
+
+install_kvm() {
+    echo "test"
+    #sudo pacman -Sy libvirt virt-manager
+    #sudo usermod -aG libvirt "$USER"
+    #sudo systemctl enable libvirtd
+}
+
+i3_rice() {
+    echo "test"
+}
+
+sway_rice() {
+    sudo pacman -Sy --noconfirm xorg-server-xwayland sway wl-clipboard mako light mpc mpd mpv \
+            ncmpcpp wofi swayidle grim slurp feh kitty materia-gtk-theme \
+             qutebrowser ranger sddm
+    sudo systemctl enable sddm
+    gpg --keyserver keyserver.ubuntu.com --recv-key 8FD3D9A8D3800305A9FFF259D1742AD60D811D58
+    yay -Sy swaylock-effects-git cava vscodium-bin nerd-fonts-noto bitwarden spotify \
+            papirus-folders secure-delete tty-clock pipes.sh bettergram trash joplin autotiling
+}
+
+wayfire_rice() {
+    echo "test"
+}
+
+
+# Compiling & installing waybar
+
+compile_waybar() {
+    read -n1 -r -p "Installing waybar Press space to continue..." key
+
+    cd /tmp
+    git clone https://github.com/Alexays/Waybar
+    cd Waybar
+    meson build
+    ninja -C build
+    sudo ninja -C build install
+    cd ..
+    rm -rf Waybar
+}
+
+common_rice() {
+    # Nano Colors
+    curl https://raw.githubusercontent.com/scopatz/nanorc/master/install.sh | sh
+    # Colored Pacman
+    sudo sed -i '33 s/#Color/Color/g' /etc/pacman.conf
+    # Setting Theme and icon Theme
+    gsettings set org.gnome.desktop.interface gtk-theme "$1"
+    sudo pacman -Sy --noconfirm papirus-icon-theme
+    gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
+    papirus-folders --theme Papirus-Dark -C violet
+    # Ranger icons
+    git clone https://github.com/alexanderjeurissen/ranger_devicons ~/.config/ranger/plugins/ranger_devicons
+}
+
+sway_dracula_rice() {
+    common_rice "ant-dracula-gtk-theme"
+    cd "$HOME"/.config/qutebrowser
+    git clone https://github.com/dracula/qutebrowser-dracula-theme.git dracula
+    echo "test"
+}
+
+sway_violet_rice() {
+    sudo pacman -Sy materia-gtk-theme
+    common_rice "Materia-dark-compact"
+    echo "test"
+}
+
+system_update
+install_os_utils
+install_secpack
+install_nfs
+install_audio
+install_bluetooth
+install_colored
+install_gpu
+install_zsh_plugins
+
+sudo reboot

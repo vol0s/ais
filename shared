@@ -1,0 +1,186 @@
+#!/bin/bash
+# FIX THIS ISSUES | NON-ACUTE
+#shellcheck disable=SC1091,SC2001,SC2015,SC2034,SC2126,SC2154
+#shellcheck disable=SC2154,SC2155,SC2181,SC2207,SC2143,SC2162
+
+### CONFIGURATION VARS ###
+
+KEYMAP="es"
+MIRROR_COUNTRY="Spain"
+TIMEZONE_PATH="Europe/Madrid"
+LOCALE_GEN="es_ES.UTF-8"
+NTP_STRING="0.es.pool.ntp.org 1.es.pool.ntp.org"
+HOSTNAME="m4ch1n4e"
+EDITOR="nano"
+USERNAME="vol0s"
+
+# COLORS
+
+Bold=$(tput bold)
+Reset=$(tput sgr0)
+
+Red=$(tput setaf 1)
+Green=$(tput setaf 2)
+Yellow=$(tput setaf 3)
+
+BRed=${Bold}${Red}
+BGreen=${Bold}${Green}
+BYellow=${Bold}${Yellow}
+
+# PROMPTS
+
+prompt1="Enter your option: "
+
+# MOUNTPOINTS
+
+EFI_MOUNTPOINT="/boot"
+ROOT_MOUNTPOINT="/dev/sda1"
+BOOT_MOUNTPOINT="/dev/sda"
+MOUNTPOINT="/mnt"
+
+# SCRIPT VARS
+
+UEFI=0
+LVM=0
+LUKS=0
+LUKS_DISK="sda2"
+TRIM=0
+
+# EDITOR
+
+if [[ -f /usr/bin/vim ]]; then
+    EDITOR="vim"
+elif [[ -z $EDITOR ]]; then
+    EDITOR="nano"
+fi
+
+# IO FUNCTIONS
+
+read_input_text() {
+    if [[ $AUTOMATIC_MODE -eq 1 ]]; then
+        OPTION=$2
+    else
+        printf "%s" "$1 [y/N]: "
+        read -r OPTION
+        echo ""
+    fi
+    OPTION=$(echo "$OPTION" | tr '[:upper:]' '[:lower:]')
+}
+
+print_line() {
+    printf "%$(tput cols)s\n"|tr ' ' '-'
+}
+
+print_title() {
+    clear
+    print_line
+    echo -e "# ${Bold}$1${Reset}"
+    print_line
+    echo ""
+}
+
+print_info() {
+    #Console width number
+    T_COLS=$(tput cols)
+    echo -e "${Bold}$1${Reset}\n" | fold -sw $(( T_COLS - 18 )) | sed 's/^/\t/'
+}
+
+error_msg() {
+    local _msg="${1}"
+    echo -e "${_msg}"
+    exit 1
+}
+
+print_warning() {
+    T_COLS=$(tput cols)
+    echo -e "${BYellow}$1${Reset}\n" | fold -sw $(( T_COLS - 1 ))
+}
+
+print_danger() {
+    T_COLS=$(tput cols)
+    echo -e "${BRed}$1${Reset}\n" | fold -sw $(( T_COLS - 1 ))
+}
+
+print_invalid() {
+    print_line
+    echo "Invalid option. Try another one."
+}
+
+pause_function() {
+    print_line
+    if [[ $AUTOMATIC_MODE -eq 0 ]]; then
+        read -e -sn 1 -p "Press enter to continue..."
+    fi
+}
+
+# CHECK FUNCTIONS
+
+check_root() {
+    if [[ "$(id -u)" != "0" ]]; then
+        error_msg "ERROR! You must execute the script as the 'root' user."
+    fi
+}
+
+check_user() {
+    if [[ "$(id -u)" == "0" ]]; then
+        error_msg "ERROR! You must execute the script as a normal user."
+    fi
+}
+
+check_archlinux() {
+    if [[ ! -e /etc/arch-release ]]; then
+        error_msg "ERROR! You must execute the script on Arch Linux."
+    fi
+}
+
+check_boot_system() {
+    if [[ "$(cat /sys/class/dmi/id/sys_vendor)" =~ ^(\bApple\b) ]]; then
+        modprobe -r -q efivars || true  # if MAC
+    else
+        modprobe -q efivarfs            # all others
+    fi
+    if [[ -d "/sys/firmware/efi/" ]]; then
+        ## Mount efivarfs if it is not already mounted
+        if (mount | grep /sys/firmware/efi/efivars); then
+        mount -t efivarfs efivarfs /sys/firmware/efi/efivars
+        fi
+        UEFI=1
+        echo "UEFI Mode detected"
+    else
+        UEFI=0
+        echo "BIOS Mode detected"
+    fi
+}
+
+check_trim() {
+    [[ -n $(hdparm -I /dev/sda | grep TRIM 2> /dev/null) ]] && TRIM=1
+}
+
+# SYSTEM FUNCS
+
+start_module() {
+    modprobe "$1"
+}
+
+add_module() {
+    for module in $1; do
+        #check if the name of the module can be the same of the module or the given name
+        [[ $# -lt 2 ]] && local _module_name="$module" || local _module_name="$2"
+        local _has_module=$(grep "$module" /etc/modules-load.d/"${_module_name}".conf 2>&1)
+        [[ -z $_has_module ]] && echo "$module" >> /etc/modules-load.d/"${_module_name}".conf
+        start_module "$module"
+    done
+}
+
+system_update() {
+    pacman -Syu
+}
+
+arch_chroot() {
+    arch-chroot $MOUNTPOINT /bin/bash -c "${1}"
+}
+
+contains_element() {
+    #check if an element exist in a string
+    for e in "${@:2}"; do [[ "$e" == "$1" ]] && break; done;
+}
