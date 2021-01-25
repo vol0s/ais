@@ -46,14 +46,6 @@ LUKS=0
 LUKS_DISK="sda2"
 TRIM=0
 
-# EDITOR
-
-if [[ -f /usr/bin/vim ]]; then
-    EDITOR="vim"
-elif [[ -z $EDITOR ]]; then
-    EDITOR="nano"
-fi
-
 # IO FUNCTIONS
 
 read_input_text() {
@@ -173,7 +165,7 @@ add_module() {
 }
 
 system_update() {
-    pacman -Syu
+    pacman -Syu --noconfirm
 }
 
 arch_chroot() {

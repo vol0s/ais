@@ -1,6 +1,8 @@
 #!/bin/bash
 
-#shellcheck disable=SC2010
+#shellcheck disable=SC2010,2154
+
+# TODO: spicetify, tmux, vim
 
 # LOADING SHARED FILE
 
@@ -12,47 +14,66 @@ else
 fi
 
 install_os_utils() {
-    sudo pacman -Sy --noconfirm cmake bc rsync grsync mlocate bash-completion pkgstats git go curl wget zsh \
-                    atop htop ntop clamav neofetch zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip \
+    print_title "[!] INSTALLING OS UTILITIES"
+    sudo pacman -Sy --noconfirm cmake bc rsync mlocate bash-completion pkgstats git go curl wget zsh \
+                    atop htop ntop neofetch zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip \
                     dosfstools exfat-utils f2fs-tools fuse fuse-exfat autofs mtpfs cmus shellcheck jq polkit-mate \
-                    molecule playerctl firefox caja mat2 firejail ebtables dnsmasq meson ninja gtkmm3
+                    molecule playerctl firefox chromium caja mat2 firejail ebtables dnsmasq meson ninja gtkmm3
 }
 
 install_nfs() {
+    print_title "[!] ENABLING NFS"
     sudo systemctl enable rpcbind
     sudo systemctl enable nfs-client.target
     sudo systemctl enable remote-fs.target
 }
 
+# TODO: hostblock, doas, rmlint, tripwire, aide, checksec, lynis
+
 install_secpack() {
+    print_title "[!] INSTALLING SECURITY TOOLS"
+    sudo pacman -Sy --noconfirm rkhunter clamav logwatch
+    yay -Sy --answerclean A --answerdiff N aide
     sudo systemctl enable clamav-daemon
+    sudo freshclam -d -c 1
+    sudo rkhunter --propupd
+    sudo rkhunter --update
 }
 
 # Install audio utilities
 
 install_audio() {
+    print_title "[!] INSTALLING AUDIO TOOLS"
     sudo pacman -Sy --noconfirm alsa-utils alsa-plugins pulseaudio pulseaudio-alsa pavucontrol
 }
 
 # Install Blutooth
 
 install_bluetooth() {
+    print_title "[!] INSTALLING BLUETOOTH"
     BLZ=$(dmesg | grep Blue | wc -l)
     if [[ $BLZ -gt 0 ]]; then
-        sudo pacman -Sy --noconfirm bluez bluez-utils pulseaudio-bluetooth blueman
-        syudo systemctl enable bluetooth
+        read -p "Want to install Bluetooth? [Y/n]" -n 1 -r
+        echo
+        REPLY=${REPLY:-Y}
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            sudo pacman -Sy --noconfirm bluez bluez-utils pulseaudio-bluetooth blueman
+            syudo systemctl enable bluetooth
+        fi
     fi
 }
 
 # Install colored utilities
 
 install_colored() {
+    print_title "[!] INSTALLING COLORED UTILS"
     sudo pacman -Sy --noconfirm lsd bat grc
 }
 
 # Install Amd GPU
 
 install_gpu() {
+    print_title "[!] INSTALLING AMD GPU"
     read -p "Want to install AMD GPU? [Y/n]" -n 1 -r
     echo
     REPLY=${REPLY:-Y}
@@ -73,35 +94,29 @@ install_gpu() {
 
 # Install Yay
 
-instal_yay() {
-    cd /tmp
+install_yay() {
+    print_title "[!] INSTALLING YAY"
+    cd /tmp || exit
     git clone https://aur.archlinux.org/yay.git
-    cd yay
+    cd yay || exit
     makepkg -csi --noconfirm
-    cd ..
-    rm -rf yay
 }
 
 # Installing oh-my-zsh and plugins
 
 install_zsh_plugins() {
+    print_title "[!] INSTALLING ZSH PLUGINS"
     sh -c \\"$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)\\"
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
-    git clone https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-completions
-    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"/themes/powerlevel10k
+    git clone https://github.com/zsh-users/zsh-completions "${ZSH_CUSTOM:=~/.oh-my-zsh/custom}"/plugins/zsh-completions
+    git clone https://github.com/zsh-users/zsh-autosuggestions "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}"/plugins/zsh-autosuggestions
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}"/plugins/zsh-syntax-highlighting
 }
-
-# Copying dotfiles
-
-cd "$HOME"
-cp -r dotfiles/.config .
-cp -r dotfiles/.images .
-cp dotfiles/.zshrc .
 
 # Configuring sddm
 
 configure_sddm() {
+    print_title "[!] CONFIGURING SDDM"
     echo "test"
     #sudo pacman -Sy qt5-graphicaleffects
     #git clone https://github.com/RadRussianRus/sddm-slice.git
@@ -116,6 +131,7 @@ configure_sddm() {
 # Configuring DNS In order to work properly with vpns.
 
 configure_dns() {
+    print_title "[!] CONFIGURING DNS"
     sudo rm /etc/resolv.conf
     sudo ln -s /run/NetworkManager/resolv.conf /etc/resolv.conf
     echo "enabled=false" >> /usr/lib/NetworkManager/conf.d/20-connectivity.conf
@@ -131,22 +147,18 @@ install_kvm() {
     echo "test"
     #sudo pacman -Sy libvirt virt-manager
     #sudo usermod -aG libvirt "$USER"
+    #sudo usermod -aG kvm "$USER"
     #sudo systemctl enable libvirtd
+}
+
+virtualization_handler(){
+    print_title "[!] INSTALLING VIRTUALIZATION"
 }
 
 i3_rice() {
     echo "test"
 }
 
-sway_rice() {
-    sudo pacman -Sy --noconfirm xorg-server-xwayland sway wl-clipboard mako light mpc mpd mpv \
-            ncmpcpp wofi swayidle grim slurp feh kitty materia-gtk-theme \
-             qutebrowser ranger sddm
-    sudo systemctl enable sddm
-    gpg --keyserver keyserver.ubuntu.com --recv-key 8FD3D9A8D3800305A9FFF259D1742AD60D811D58
-    yay -Sy swaylock-effects-git cava vscodium-bin nerd-fonts-noto bitwarden spotify \
-            papirus-folders secure-delete tty-clock pipes.sh bettergram trash joplin autotiling
-}
 
 wayfire_rice() {
     echo "test"
@@ -156,16 +168,24 @@ wayfire_rice() {
 # Compiling & installing waybar
 
 compile_waybar() {
-    read -n1 -r -p "Installing waybar Press space to continue..." key
-
-    cd /tmp
+    print_title "[!] INSTALLING WAYBAR"
+    pause_function
+    cd /tmp || exit
     git clone https://github.com/Alexays/Waybar
-    cd Waybar
+    cd Waybar || exit
     meson build
     ninja -C build
     sudo ninja -C build install
-    cd ..
-    rm -rf Waybar
+}
+
+sway_rice() {
+    print_title "[!] INSTALLING SWAY RICE SOFTWARE"
+    sudo pacman -Sy --noconfirm xorg-server-xwayland sway wl-clipboard mako light mpc mpd mpv \
+            ncmpcpp wofi swayidle grim slurp feh kitty qutebrowser ranger sddm
+    sudo systemctl enable sddm
+    gpg --keyserver keyserver.ubuntu.com --recv-key 8FD3D9A8D3800305A9FFF259D1742AD60D811D58
+    yay -Sy swaylock-effects-git cava vscodium-bin nerd-fonts-noto bitwarden spotify \
+            secure-delete tty-clock pipes.sh bettergram trash autotiling
 }
 
 common_rice() {
@@ -177,6 +197,7 @@ common_rice() {
     gsettings set org.gnome.desktop.interface gtk-theme "$1"
     sudo pacman -Sy --noconfirm papirus-icon-theme
     gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
+    yay -Sy papirus-folders
     papirus-folders --theme Papirus-Dark -C violet
     # Ranger icons
     git clone https://github.com/alexanderjeurissen/ranger_devicons ~/.config/ranger/plugins/ranger_devicons
@@ -184,25 +205,55 @@ common_rice() {
 
 sway_dracula_rice() {
     common_rice "ant-dracula-gtk-theme"
-    cd "$HOME"/.config/qutebrowser
-    git clone https://github.com/dracula/qutebrowser-dracula-theme.git dracula
     echo "test"
 }
 
 sway_violet_rice() {
     sudo pacman -Sy materia-gtk-theme
     common_rice "Materia-dark-compact"
-    echo "test"
+    cd /tmp || exit
+    git clone https://github.com/vol0s/sway-violet-rice
+    cd sway-violet-rice || exit
+    bash vsrd.sh &
 }
 
+ricing_handler() {
+
+    print_title "[!] R U RICING OR NOT"
+    rice_list=("Sway Dracula Rice" "Sway Violet Rice"  "NONE")
+    PS3="$prompt1"
+    echo -e "Select your rice: \n"
+    select RICE in "${rice_list[@]}"; do
+        if contains_element "$RICE" "${rice_list[@]}"; then
+            if [ "Sway Dracula Rice" == "$RICE" ]; then
+                sway_rice
+                sway_dracula_rice
+            elif [ "Sway Violet Rice" == "$RICE" ]; then
+                sway_rice
+                sway_violet_rice
+            fi
+        else
+            invalid_option
+        fi
+    done
+}
+
+check_archlinux
+check_user
 system_update
 install_os_utils
-install_secpack
+install_yay
 install_nfs
 install_audio
 install_bluetooth
 install_colored
 install_gpu
 install_zsh_plugins
+
+ricing_handler
+
+install_secpack
+
+sudo rm -rf /tmp/*
 
 sudo reboot

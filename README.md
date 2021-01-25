@@ -1,6 +1,6 @@
 <h1 align="center">Arch Install Scripts</h1>
 
-Custom scripts made in order to automate Arch-Linux's installation & configuration.
+Custom scripts made in order to automate Arch-Linux's installation & configuration. :ice_cube:
 
 ## Note :memo:
 
@@ -12,7 +12,7 @@ Custom scripts made in order to automate Arch-Linux's installation & configurati
 - Get list of packages and install git: `pacman -Sy git`
 - Get the script: `git clone git://github.com/vol0s/ais`
 
-## How to use :interrobang:
+## How to use AIS :ice_cube:
 
 The Repository will consist of 4 scripts: 
 
@@ -62,7 +62,7 @@ The next step will be configuring our freshly installed Arch Installation. It wi
 - [X] GPU Drivers (amdgpu)
 - [ ] Virtualization & Containers
 
-- [X] RICING
+- [X] RICING :rice_ball:
   - [X] sway-violet-rice
   - [ ] sway-dracula-rice
 

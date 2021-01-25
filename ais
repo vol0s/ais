@@ -24,6 +24,7 @@ umount_partitions() {
 # CONFIGURE MIRRORLIST
 
 config_mirrorlist() {
+    print_title "[!] CONFIGURING MIRRORLIST"
     echo " - Backing up the original mirrorlist..."
     mv -i /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.orig
     echo " - Fetching mirrors located in $MIRROR_COUNTRY..."
@@ -327,7 +328,7 @@ format_partitions() {
 
 # SELECT LINUX VERSION
 
-select_linux_version() {
+select_linux_kernel() {
     print_title "[!] SELECTING LINUX VERSION"
     version_list=("linux (default)" "linux-lts (long term support)" "linux-hardened (security features)" "linux-zen (tuned kernel)")
     PS3="$prompt1"
@@ -364,20 +365,11 @@ install_base_system() {
     pacman -Sy --noconfirm archlinux-keyring
     print_info "Using the pacstrap script we install the base system. The base-devel package group will be installed also."
     rm "${MOUNTPOINT}""${EFI_MOUNTPOINT}"/vmlinuz-linux
-    select_linux_version
+    select_linux_kernel
     [[ $? -ne 0 ]] && error_msg "Installing base system to ${MOUNTPOINT} failed. Check error messages above."
-
     local PTABLE=$(parted -sl | grep "gpt")
     [[ -n $PTABLE ]] && pacstrap "${MOUNTPOINT}" gptfdisk
-    WIRELESS_DEV=$(ip link | grep wl | awk '{print $2}' | sed 's/://' | sed '1!d')
-    if [[ -n $WIRELESS_DEV ]]; then
-        pacstrap "${MOUNTPOINT}" iw wireless_tools wpa_supplicant dialog
-    else
-        WIRED_DEV=$(ip link | grep "ens\|eno\|enp" | awk '{print $2}' | sed 's/://' | sed '1!d')
-        if [[ -n $WIRED_DEV ]]; then
-            arch_chroot "systemctl enable NetworkManager"
-        fi
-    fi
+    arch_chroot "systemctl enable NetworkManager"
 }
 
 # CONFIGURE KEYMAP
@@ -387,7 +379,7 @@ configure_keymap() {
     #ADD KEYMAP TO THE NEW SETUP
     echo "KEYMAP=$KEYMAP" > "${MOUNTPOINT}"/etc/vconsole.conf
     localectl set-x11-keymap $KEYMAP
-    localectl set-keymap $KEYMA
+    localectl set-keymap $KEYMAP
 }
 
 # CONFIGURE FSTAB
@@ -513,10 +505,12 @@ new_user() {
 finish() {
     print_title "[!] INSTALL COMPLETED"
     print_warning "\nA copy of the AUI will be placed in /home/$USERNAME directory of your new system"
+    cp -r /root/ais "$MOUNTPOINT"/home/"$USERNAME"
     umount_partitions
     poweroff
 }
 
+check_root
 check_archlinux
 check_boot_system
 check_connection
