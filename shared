@@ -29,7 +29,7 @@ BYellow=${Bold}${Yellow}
 
 # PROMPTS
 
-prompt1="Enter your option: "
+prompt1="\nEnter your option: "
 
 # MOUNTPOINTS
 
@@ -93,9 +93,10 @@ print_danger() {
     echo -e "${BRed}$1${Reset}\n" | fold -sw $(( T_COLS - 1 ))
 }
 
-print_invalid() {
+invalid_option() {
     print_line
     echo "Invalid option. Try another one."
+    pause_function
 }
 
 pause_function() {

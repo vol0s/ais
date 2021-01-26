@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#shellcheck disable=SC2010,2154
+#shellcheck disable=SC2010,2154,1091
 
 # TODO: spicetify, tmux, vim
 
@@ -16,8 +16,8 @@ fi
 install_os_utils() {
     print_title "[!] INSTALLING OS UTILITIES"
     sudo pacman -Sy --noconfirm cmake bc rsync mlocate bash-completion pkgstats git go curl wget zsh \
-                    atop htop ntop neofetch zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip \
-                    dosfstools exfat-utils f2fs-tools fuse fuse-exfat autofs mtpfs cmus shellcheck jq polkit-mate \
+                    atop htop neofetch zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip \
+                    dosfstools exfat-utils f2fs-tools fuse fuse-exfat autofs mtpfs cmus shellcheck jq mate-polkit \
                     molecule playerctl firefox chromium caja mat2 firejail ebtables dnsmasq meson ninja gtkmm3
 }
 
@@ -51,7 +51,7 @@ install_audio() {
 
 install_bluetooth() {
     print_title "[!] INSTALLING BLUETOOTH"
-    BLZ=$(dmesg | grep Blue | wc -l)
+    BLZ=$(dmesg | grep -c Blue)
     if [[ $BLZ -gt 0 ]]; then
         read -p "Want to install Bluetooth? [Y/n]" -n 1 -r
         echo
@@ -74,10 +74,8 @@ install_colored() {
 
 install_gpu() {
     print_title "[!] INSTALLING AMD GPU"
-    read -p "Want to install AMD GPU? [Y/n]" -n 1 -r
-    echo
-    REPLY=${REPLY:-Y}
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    read_input_text "Want to install AMD GPU?"
+    if [[ $OPTION == y ]]; then
         sudo pacman -Sy --noconfirm xf86-video-amdgpu vulkan-radeon vulkan-tools mesa-libgl mesa-vdpau libvdpau-va-gl
         add_module "amdgpu radeon" "ati"
         if [ "$(ls /boot | grep hardened -c)" -gt "0" ]; then
@@ -117,15 +115,15 @@ install_zsh_plugins() {
 
 configure_sddm() {
     print_title "[!] CONFIGURING SDDM"
-    echo "test"
-    #sudo pacman -Sy qt5-graphicaleffects
-    #git clone https://github.com/RadRussianRus/sddm-slice.git
-    #sed -i '3 s/background=/background=~\/.images\/AbstractViolet.png/g' sddm-slice/theme.conf
-    #sudo cp -r sddm-slice /usr/share/sddm/themes/sddm-slice
-    #rm -rf sddm-slice
-    #sudo mkdir /etc/sddm.conf.d
-    #sudo cp /usr/lib/sddm/sddm.conf.d/default.conf /etc/sddm.conf.d/
-    #sudo sed -i '33 s/Current=/Current=sddm-slice/g' /etc/sddm.conf.d/default.conf
+    sudo pacman -Sy qt5-graphicaleffects
+    cd /tmp || exit
+    git clone https://github.com/RadRussianRus/sddm-slice.git
+    sed -i '3 s/background=/background=~\/.images\/AbstractViolet.png/g' sddm-slice/theme.conf
+    cp sddm-slice/theme.conf sdmm-slice/theme.conf.user
+    sudo cp -r sddm-slice /usr/share/sddm/themes/sddm-slice
+    sudo mkdir /etc/sddm.conf.d
+    sudo cp /usr/lib/sddm/sddm.conf.d/default.conf /etc/sddm.conf.d/
+    sudo sed -i '33 s/Current=/Current=sddm-slice/g' /etc/sddm.conf.d/default.conf
 }
 
 # Configuring DNS In order to work properly with vpns.
@@ -140,11 +138,11 @@ configure_dns() {
 # Install Virtualization
 
 install_virtualbox() {
-    echo "test"
+    echo "todo"
 }
 
 install_kvm() {
-    echo "test"
+    echo "todo"
     #sudo pacman -Sy libvirt virt-manager
     #sudo usermod -aG libvirt "$USER"
     #sudo usermod -aG kvm "$USER"
@@ -153,15 +151,31 @@ install_kvm() {
 
 virtualization_handler(){
     print_title "[!] INSTALLING VIRTUALIZATION"
+    read_input_text "Want to install Virtualization Software?"
+    if [[ $OPTION == y ]]; then
+        PS3="$prompt1"
+        virt_list=("VirtualBox" "QUEMU/KVM"  "NONE")
+        echo -e "Select your Virtualization Software: \n"
+        select VIRT in "${virt_list[@]}"; do
+            if contains_element "$RICE" "${rice_list[@]}"; then
+                if [ "VirtualBox" == "$VIRT" ]; then
+                    install_virtualbox
+                    break
+                elif [ "QUEMU/KVM" == "$VIRT" ]; then
+                    install_kvm
+                    break
+                elif [ "NONE" == "$RICE" ]; then
+                    break
+                fi
+            else
+                invalid_option
+            fi
+        done
+    fi
 }
 
 i3_rice() {
-    echo "test"
-}
-
-
-wayfire_rice() {
-    echo "test"
+    echo "todo"
 }
 
 
@@ -169,7 +183,6 @@ wayfire_rice() {
 
 compile_waybar() {
     print_title "[!] INSTALLING WAYBAR"
-    pause_function
     cd /tmp || exit
     git clone https://github.com/Alexays/Waybar
     cd Waybar || exit
@@ -178,13 +191,17 @@ compile_waybar() {
     sudo ninja -C build install
 }
 
+wayfire_rice() {
+    echo "todo"
+}
+
 sway_rice() {
     print_title "[!] INSTALLING SWAY RICE SOFTWARE"
     sudo pacman -Sy --noconfirm xorg-server-xwayland sway wl-clipboard mako light mpc mpd mpv \
             ncmpcpp wofi swayidle grim slurp feh kitty qutebrowser ranger sddm
     sudo systemctl enable sddm
     gpg --keyserver keyserver.ubuntu.com --recv-key 8FD3D9A8D3800305A9FFF259D1742AD60D811D58
-    yay -Sy swaylock-effects-git cava vscodium-bin nerd-fonts-noto bitwarden spotify \
+    yay -Sy --answerclean A --answerdiff N swaylock-effects-git cava vscodium-bin nerd-fonts-noto spotify \
             secure-delete tty-clock pipes.sh bettergram trash autotiling
 }
 
@@ -197,7 +214,7 @@ common_rice() {
     gsettings set org.gnome.desktop.interface gtk-theme "$1"
     sudo pacman -Sy --noconfirm papirus-icon-theme
     gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
-    yay -Sy papirus-folders
+    yay -Sy --answerclean A --answerdiff N papirus-folders
     papirus-folders --theme Papirus-Dark -C violet
     # Ranger icons
     git clone https://github.com/alexanderjeurissen/ranger_devicons ~/.config/ranger/plugins/ranger_devicons
@@ -218,24 +235,30 @@ sway_violet_rice() {
 }
 
 ricing_handler() {
-
     print_title "[!] R U RICING OR NOT"
-    rice_list=("Sway Dracula Rice" "Sway Violet Rice"  "NONE")
-    PS3="$prompt1"
-    echo -e "Select your rice: \n"
-    select RICE in "${rice_list[@]}"; do
-        if contains_element "$RICE" "${rice_list[@]}"; then
-            if [ "Sway Dracula Rice" == "$RICE" ]; then
-                sway_rice
-                sway_dracula_rice
-            elif [ "Sway Violet Rice" == "$RICE" ]; then
-                sway_rice
-                sway_violet_rice
+    read_input_text "Wanna rice?"
+    if [[ $OPTION == y ]]; then
+        rice_list=("Sway Dracula Rice" "Sway Violet Rice" "NONE")
+        PS3="$prompt1"
+        echo -e "Select your rice: \n"
+        select RICE in "${rice_list[@]}"; do
+            if contains_element "$RICE" "${rice_list[@]}"; then
+                if [ "Sway Dracula Rice" == "$RICE" ]; then
+                    sway_rice
+                    sway_dracula_rice
+                    break
+                elif [ "Sway Violet Rice" == "$RICE" ]; then
+                    sway_rice
+                    sway_violet_rice
+                    break
+                elif [ "NONE" == "$RICE" ]; then
+                    break
+                fi
+            else
+                invalid_option
             fi
-        else
-            invalid_option
-        fi
-    done
+        done
+    fi
 }
 
 check_archlinux
