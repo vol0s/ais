@@ -140,11 +140,7 @@ configure_dns() {
 
 install_virtualbox() {
     print_title "[!] INSTALLING virtualbox"
-    echo "todo"
-    sudo pacmann -Sy --noconfirm base-devel dkms
-    wget -c
-    wget -c
-    sudo chmdo +x 
+    yay -Sy virtualbox-bin virtualbox-ext-oracle
 }
 
 install_kvm() {
@@ -180,6 +176,19 @@ virtualization_handler(){
         done
     fi
 }
+
+containerization_handler(){
+    print_title "[!] INSTALLING CONTAINERS"
+    read_input_text "Want to install Podman as Containerization Software?"
+    if [[ $OPTION == y ]]; then
+        pacman -Sy crun podman       
+        sudo touch /etc/{subgid,subuid}
+        sudo usermod --add-subuids 165536-231072 --add-subgids 165536-231072 "$USER"
+        podman system migrate
+    fi
+}
+
+# i3-gaps installation
 
 i3_rice() {
     echo "todo"
@@ -286,7 +295,8 @@ install_gpu
 install_zsh_plugins
 ricing_handler
 configure_sddm
-# virtualization_handler
+virtualization_handler
+containerization_handler
 install_secpack
 sudo rm -rf /tmp/*
 sudo reboot
