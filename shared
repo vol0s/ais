@@ -80,7 +80,7 @@ print_info() {
 
 error_msg() {
     local _msg="${1}"
-    echo -e "${_msg}"
+    echo -e "${Red}${_msg}${Reset}"
     exit 1
 }
 

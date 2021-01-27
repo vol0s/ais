@@ -320,7 +320,8 @@ format_partitions() {
         if [[ ${#partitions_list[@]} -eq 0 && ${partition_name[i]} != swap ]]; then
             break
         elif [[ ${partition_name[i]} == another ]]; then
-            read_input_text "\nConfigure more partitions"
+            echo
+            read_input_text "Configure more partitions"
             [[ $OPTION != y ]] && break
         fi
     done

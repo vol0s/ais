@@ -33,7 +33,7 @@ install_nfs() {
 install_secpack() {
     print_title "[!] INSTALLING SECURITY TOOLS"
     sudo pacman -Sy --noconfirm rkhunter clamav logwatch
-    yay -Sy --answerclean A --answerdiff N aide
+    #yay -Sy --answerclean A --answerdiff N aide
     sudo systemctl enable clamav-daemon
     sudo freshclam -d -c 1
     sudo rkhunter --propupd
@@ -106,9 +106,9 @@ install_zsh_plugins() {
     print_title "[!] INSTALLING ZSH PLUGINS"
     sh -c \\"$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)\\"
     git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"/themes/powerlevel10k
-    git clone https://github.com/zsh-users/zsh-completions "${ZSH_CUSTOM:=~/.oh-my-zsh/custom}"/plugins/zsh-completions
-    git clone https://github.com/zsh-users/zsh-autosuggestions "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}"/plugins/zsh-autosuggestions
-    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}"/plugins/zsh-syntax-highlighting
+    git clone https://github.com/zsh-users/zsh-completions "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"/plugins/zsh-completions
+    git clone https://github.com/zsh-users/zsh-autosuggestions "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"/plugins/zsh-autosuggestions
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"/plugins/zsh-syntax-highlighting
 }
 
 # Configuring sddm
@@ -284,13 +284,9 @@ install_bluetooth
 install_colored
 install_gpu
 install_zsh_plugins
-
 ricing_handler
 configure_sddm
-
 # virtualization_handler
 install_secpack
-
 sudo rm -rf /tmp/*
-
 sudo reboot
