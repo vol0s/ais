@@ -10,9 +10,9 @@ MIRROR_COUNTRY="Spain"
 TIMEZONE_PATH="Europe/Madrid"
 LOCALE_GEN="es_ES.UTF-8"
 NTP_STRING="0.es.pool.ntp.org 1.es.pool.ntp.org"
-HOSTNAME="m4ch1n4e"
+HOSTNAME="host"
 EDITOR="nano"
-USERNAME="vol0s"
+USERNAME="user"
 
 # COLORS
 
@@ -29,7 +29,8 @@ BYellow=${Bold}${Yellow}
 
 # PROMPTS
 
-prompt1="\nEnter your option: "
+prompt1="""
+Enter your option: """
 
 # MOUNTPOINTS
 

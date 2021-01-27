@@ -115,7 +115,7 @@ install_zsh_plugins() {
 
 configure_sddm() {
     print_title "[!] CONFIGURING SDDM"
-    sudo pacman -Sy qt5-graphicaleffects
+    sudo pacman -Sy qt5-graphicaleffects sddm
     cd /tmp || exit
     git clone https://github.com/RadRussianRus/sddm-slice.git
     sed -i '3 s/background=/background=~\/.images\/AbstractViolet.png/g' sddm-slice/theme.conf
@@ -124,6 +124,7 @@ configure_sddm() {
     sudo mkdir /etc/sddm.conf.d
     sudo cp /usr/lib/sddm/sddm.conf.d/default.conf /etc/sddm.conf.d/
     sudo sed -i '33 s/Current=/Current=sddm-slice/g' /etc/sddm.conf.d/default.conf
+    sudo systemctl enable sddm
 }
 
 # Configuring DNS In order to work properly with vpns.
@@ -138,15 +139,21 @@ configure_dns() {
 # Install Virtualization
 
 install_virtualbox() {
+    print_title "[!] INSTALLING virtualbox"
     echo "todo"
+    sudo pacmann -Sy --noconfirm base-devel dkms
+    wget -c
+    wget -c
+    sudo chmdo +x 
 }
 
 install_kvm() {
+    print_title "[!] INSTALLING qemu/kvm"
     echo "todo"
-    #sudo pacman -Sy libvirt virt-manager
-    #sudo usermod -aG libvirt "$USER"
-    #sudo usermod -aG kvm "$USER"
-    #sudo systemctl enable libvirtd
+    sudo pacman -Sy libvirt virt-manager
+    sudo usermod -aG libvirt "$USER"
+    sudo usermod -aG kvm "$USER"
+    sudo systemctl enable libvirtd
 }
 
 virtualization_handler(){
@@ -182,7 +189,7 @@ i3_rice() {
 # Compiling & installing waybar
 
 compile_waybar() {
-    print_title "[!] INSTALLING WAYBAR"
+    print_title "[!] COMPILING WAYBAR"
     cd /tmp || exit
     git clone https://github.com/Alexays/Waybar
     cd Waybar || exit
@@ -198,14 +205,12 @@ wayfire_rice() {
 sway_rice() {
     print_title "[!] INSTALLING SWAY RICE SOFTWARE"
     sudo pacman -Sy --noconfirm xorg-server-xwayland sway wl-clipboard mako light mpc mpd mpv \
-            ncmpcpp wofi swayidle grim slurp feh kitty qutebrowser ranger sddm
-    sudo systemctl enable sddm
-    gpg --keyserver keyserver.ubuntu.com --recv-key 8FD3D9A8D3800305A9FFF259D1742AD60D811D58
-    yay -Sy --answerclean A --answerdiff N swaylock-effects-git cava vscodium-bin nerd-fonts-noto spotify \
-            secure-delete tty-clock pipes.sh bettergram trash autotiling
+            ncmpcpp wofi swayidle grim slurp feh kitty qutebrowser ranger
+    yay -Sy --answerclean A --answerdiff N swaylock-effects-git autotiling
 }
 
 common_rice() {
+    print_title "[!] INSTALLING COMMON RICE"
     # Nano Colors
     curl https://raw.githubusercontent.com/scopatz/nanorc/master/install.sh | sh
     # Colored Pacman
@@ -214,7 +219,9 @@ common_rice() {
     gsettings set org.gnome.desktop.interface gtk-theme "$1"
     sudo pacman -Sy --noconfirm papirus-icon-theme
     gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
-    yay -Sy --answerclean A --answerdiff N papirus-folders
+    gpg --keyserver keyserver.ubuntu.com --recv-key 8FD3D9A8D3800305A9FFF259D1742AD60D811D58
+    yay -Sy --answerclean A --answerdiff N papirus-folders cava vscodium-bin nerd-fonts-noto spotify \
+              secure-delete tty-clock pipes.sh bettergram trash
     papirus-folders --theme Papirus-Dark -C violet
     # Ranger icons
     git clone https://github.com/alexanderjeurissen/ranger_devicons ~/.config/ranger/plugins/ranger_devicons
@@ -227,6 +234,7 @@ sway_dracula_rice() {
 
 sway_violet_rice() {
     sudo pacman -Sy materia-gtk-theme
+    compile_waybar
     common_rice "Materia-dark-compact"
     cd /tmp || exit
     git clone https://github.com/vol0s/sway-violet-rice
@@ -238,18 +246,22 @@ ricing_handler() {
     print_title "[!] R U RICING OR NOT"
     read_input_text "Wanna rice?"
     if [[ $OPTION == y ]]; then
-        rice_list=("Sway Dracula Rice" "Sway Violet Rice" "NONE")
+        rice_list=("Sway Dracula Rice" "Sway Violet Rice" "KDE (NO RICE)" "NONE")
         PS3="$prompt1"
         echo -e "Select your rice: \n"
         select RICE in "${rice_list[@]}"; do
             if contains_element "$RICE" "${rice_list[@]}"; then
                 if [ "Sway Dracula Rice" == "$RICE" ]; then
-                    sway_rice
-                    sway_dracula_rice
+                    echo "NOT FINISHED YET"
+                    #sway_rice
+                    #sway_dracula_rice
                     break
                 elif [ "Sway Violet Rice" == "$RICE" ]; then
                     sway_rice
                     sway_violet_rice
+                    break
+                elif [ "KDE (NO RICE)" == "$RICE" ]; then
+                    sudo pacman -Sy plasma konsole ksysguard
                     break
                 elif [ "NONE" == "$RICE" ]; then
                     break
@@ -274,7 +286,9 @@ install_gpu
 install_zsh_plugins
 
 ricing_handler
+configure_sddm
 
+# virtualization_handler
 install_secpack
 
 sudo rm -rf /tmp/*

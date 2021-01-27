@@ -1,6 +1,6 @@
 #!/bin/bash
 # FIX THIS ISSUES | NON-ACUTE
-#shellcheck disable=SC1091,SC2001,SC2015,SC2153,SC2154,SC2155,SC2181,SC2207
+#shellcheck disable=SC1091,SC2001,SC2015,SC2153,SC2154,SC2155,SC2181,SC2207,SC2046
 
 # LOADING SHARED FILE
 
@@ -211,9 +211,9 @@ format_partitions() {
         if [[ $OPTION == y ]]; then
             [[ -z $3 ]] && select_filesystem || filesystem=$3
             mkfs."${filesystem}" "$1" \
-                "$([[ ${filesystem} == xfs || ${filesystem} == btrfs || ${filesystem} == reiserfs ]] && echo "-f")" \
-                "$([[ ${filesystem} == vfat ]] && echo "-F32")" \
-                "$([[ $TRIM -eq 1 && ${filesystem} == ext4 ]] && echo "-E discard")"
+                $([[ ${filesystem} == xfs || ${filesystem} == btrfs || ${filesystem} == reiserfs ]] && echo "-f") \
+                $([[ ${filesystem} == vfat ]] && echo "-F32") \
+                $([[ $TRIM -eq 1 && ${filesystem} == ext4 ]] && echo "-E discard")
             fsck "$1"
             mkdir -p "$2"
             mount -t "${filesystem}" "$1" "$2"
@@ -505,7 +505,8 @@ new_user() {
 finish() {
     print_title "[!] INSTALL COMPLETED"
     print_warning "\nA copy of the AIS will be placed in /home/$USERNAME directory of your new system"
-    mv -r /root/ais "$MOUNTPOINT"/home/"$USERNAME"
+    cp -r /root/ais "$MOUNTPOINT"/home/"$USERNAME"
+    rm -rf /root/ais
     chown -R "$USERNAME" "$MOUNTPOINT"/home/"$USERNAME"/ais
     umount_partitions
     poweroff
