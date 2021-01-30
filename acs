@@ -76,8 +76,8 @@ install_gpu() {
     print_title "[!] INSTALLING AMD GPU"
     read_input_text "Want to install AMD GPU?"
     if [[ $OPTION == y ]]; then
-        sudo pacman -Sy --noconfirm xf86-video-amdgpu mesa lib32-mesa lib32-vulkan-radeon vulkan-radeon vulkan-tools mesa-libgl \
-                                    libvdpau-va-gl lib32-vulkan-icd-loader vulkan-icd-loader opencl-amd
+        sudo pacman -Sy --noconfirm xf86-video-amdgpu mesa vulkan-radeon vulkan-tools mesa-libgl \
+                                    libvdpau-va-gl vulkan-icd-loader
         add_module "amdgpu radeon" "ati"
         if [ "$(ls /boot | grep hardened -c)" -gt "0" ]; then
             sudo mkinitcpio -p linux-hardened

@@ -510,7 +510,7 @@ finish() {
     print_warning "\nA copy of the AIS will be placed in /home/$USERNAME directory of your new system"
     cp -r /root/ais "$MOUNTPOINT"/home/"$USERNAME"
     rm -rf /root/ais
-    chown -R "$USERNAME" "$MOUNTPOINT"/home/"$USERNAME"/ais
+    chown -R "$USERNAME":users "$MOUNTPOINT"/home/"$USERNAME"/ais
     umount_partitions
     poweroff
 }
