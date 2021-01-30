@@ -51,7 +51,7 @@ install_audio() {
 
 install_bluetooth() {
     print_title "[!] INSTALLING BLUETOOTH"
-    BLZ=$(dmesg | grep -c Blue)
+    BLZ=$(dmesg | grep Blue | wc -l)
     if [[ $BLZ -gt 0 ]]; then
         read -p "Want to install Bluetooth? [Y/n]" -n 1 -r
         echo
@@ -76,7 +76,8 @@ install_gpu() {
     print_title "[!] INSTALLING AMD GPU"
     read_input_text "Want to install AMD GPU?"
     if [[ $OPTION == y ]]; then
-        sudo pacman -Sy --noconfirm xf86-video-amdgpu vulkan-radeon vulkan-tools mesa-libgl mesa-vdpau libvdpau-va-gl
+        sudo pacman -Sy --noconfirm xf86-video-amdgpu mesa lib32-mesa lib32-vulkan-radeon vulkan-radeon vulkan-tools mesa-libgl \
+                                    libvdpau-va-gl lib32-vulkan-icd-loader vulkan-icd-loader opencl-amd
         add_module "amdgpu radeon" "ati"
         if [ "$(ls /boot | grep hardened -c)" -gt "0" ]; then
             sudo mkinitcpio -p linux-hardened
@@ -88,6 +89,7 @@ install_gpu() {
             sudo mkinitcpio -p linux
         fi
     fi
+    #yay -Sy vulkan-amdgpu-pro
 }
 
 # Install Yay
@@ -181,10 +183,12 @@ containerization_handler(){
     print_title "[!] INSTALLING CONTAINERS"
     read_input_text "Want to install Podman as Containerization Software?"
     if [[ $OPTION == y ]]; then
-        pacman -Sy crun podman       
+        sudo pacman -Sy crun podman       
         sudo touch /etc/{subgid,subuid}
         sudo usermod --add-subuids 165536-231072 --add-subgids 165536-231072 "$USER"
         podman system migrate
+        echo "[registries.search]" | sudo tee -a /etc/containers/registries.conf
+        echo "registries = ['registry.access.redhat.com', 'registry.fedoraproject.org', 'registry.centos.org', 'docker.io']" | sudo tee -a /etc/containers/registries.conf
     fi
 }
 
