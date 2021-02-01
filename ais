@@ -57,7 +57,7 @@ create_partition_scheme() {
     LUKS=0
     LVM=0
     print_title "[!] CREATING PARTITION SCHEME"
-    partition_layouts=("Default" "LVM" "LVM+LUKS")
+    partition_layouts=("Default (BOOT, SWAP, ROOT)" "LVM" "LVM+LUKS")
     PS3="$prompt1"
     echo -e "Select partition scheme:"
     select OPT in "${partition_layouts[@]}"; do

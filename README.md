@@ -36,7 +36,7 @@ HOSTNAME="arch"
 EDITOR="vi"
 ```
 
-Once we've edited these variables we will be ready to launch our `ais` script, which will ask us for the rest of specifications. This Script will also configure the network via `NetworkManager` service's DHCP.
+Once we've edited these variables we will be ready to launch our `ais` script, which will ask us for the rest of specifications. For the moment it has only been tested with DOS partitioning, and the Default Mode needs a SWAP partition. This Script will also configure the network via `NetworkManager` service's DHCP and grant sudo to our created user.
 
 ```bash
 ./ais
@@ -53,20 +53,21 @@ The next step will be configuring our freshly installed Arch Installation. It wi
 - [X] Bluetooth (bluez/blueman)
 - [X] NFS/NTFS
 - [X] Desktop Env
-  - [ ] KDE
+  - [X] KDE
   - [ ] i3-gaps
   - [X] Sway
   - [ ] Wayfire
 - [X] Display Manager (sddm)
 - [X] Browsers (firefox/qutebrowser)
 - [X] GPU Drivers (amdgpu)
-- [ ] Virtualization & Containers
+- [ ] Virtualization
+- [X] Containers
 
 - [X] RICING :rice_ball:
   - [X] sway-violet-rice
   - [ ] sway-dracula-rice
 
-It also will install several applications. Like Spotify, Joplin or Bitwarden. It's recommended to modify the `acs` script and add the utilities you want.
+The installation process is simple, just follow the steps until oh-my-zsh plugins are installed and a zsh shell is opened. Then exit this shell and the installation process will continue. Just press Enter when its needed, and make your choices when asked. It also will install several applications like Spotify. It's recommended to modify the `acs` script and add the utilities you want.
 
 ```bash
 ./acs
@@ -80,8 +81,8 @@ This script will set a full pentest environment for our Arch-Linux installation.
 ```
 ## Roadmap :calendar:
 
-- [ ] AIS [Arch Install Script]
-- [ ] ACS [Arch Config Script]
+- [X] AIS [Arch Install Script]
+- [X] ACS [Arch Config Script]
 - [ ] APS [Arch Pentest Script]
 
 ## Thanx helmuthdu :kissing_heart:

@@ -21,14 +21,15 @@ install_os_utils() {
                     molecule playerctl firefox chromium caja mat2 firejail ebtables dnsmasq meson ninja gtkmm3
 }
 
-install_nfs() {
+enable_nfs() {
     print_title "[!] ENABLING NFS"
     sudo systemctl enable rpcbind
     sudo systemctl enable nfs-client.target
     sudo systemctl enable remote-fs.target
 }
 
-# TODO: hostblock, doas, rmlint, tripwire, aide, checksec, lynis
+# Install security tools
+## TODO: hostblock, doas, rmlint, tripwire, aide, checksec, lynis
 
 install_secpack() {
     print_title "[!] INSTALLING SECURITY TOOLS"
@@ -129,7 +130,7 @@ configure_sddm() {
     sudo systemctl enable sddm
 }
 
-# Configuring DNS In order to work properly with vpns.
+# Configuring DNS In order to work properly with some vpns.
 
 configure_dns() {
     print_title "[!] CONFIGURING DNS"
@@ -139,6 +140,7 @@ configure_dns() {
 }
 
 # Install Virtualization
+## ! BOTH NOT WORKING PROPERLY. FIX NEEDED.
 
 install_virtualbox() {
     print_title "[!] INSTALLING virtualbox"
@@ -148,7 +150,7 @@ install_virtualbox() {
 install_kvm() {
     print_title "[!] INSTALLING qemu/kvm"
     echo "todo"
-    sudo pacman -Sy libvirt virt-manager
+    sudo pacman -Sy libvirt virt-manager dmidecode
     sudo usermod -aG libvirt "$USER"
     sudo usermod -aG kvm "$USER"
     sudo systemctl enable libvirtd
@@ -179,6 +181,9 @@ virtualization_handler(){
     fi
 }
 
+# Podman Containerization
+## WORKING OK BUT PROBLEMS WITH KVM
+
 containerization_handler(){
     print_title "[!] INSTALLING CONTAINERS"
     read_input_text "Want to install Podman as Containerization Software?"
@@ -192,12 +197,11 @@ containerization_handler(){
     fi
 }
 
-# i3-gaps installation
+# i3-gaps Rice
 
 i3_rice() {
     echo "todo"
 }
-
 
 # Compiling & installing waybar
 
@@ -211,16 +215,22 @@ compile_waybar() {
     sudo ninja -C build install
 }
 
+# WayfireWM Rice
+
 wayfire_rice() {
     echo "todo"
 }
 
+# SwayWM Rice
+
 sway_rice() {
     print_title "[!] INSTALLING SWAY RICE SOFTWARE"
     sudo pacman -Sy --noconfirm xorg-server-xwayland sway wl-clipboard mako light mpc mpd mpv \
-            ncmpcpp wofi swayidle grim slurp feh kitty qutebrowser ranger
+            ncmpcpp wofi swayidle grim slurp feh kitty qutebrowser ranger qt5-wayland
     yay -Sy --answerclean A --answerdiff N swaylock-effects-git autotiling
 }
+
+# Common Ricing software
 
 common_rice() {
     print_title "[!] INSTALLING COMMON RICE"
@@ -240,10 +250,14 @@ common_rice() {
     git clone https://github.com/alexanderjeurissen/ranger_devicons ~/.config/ranger/plugins/ranger_devicons
 }
 
+# Sway Custom Dracula Flavour # NOT FINISHED
+
 sway_dracula_rice() {
     common_rice "ant-dracula-gtk-theme"
     echo "test"
 }
+
+# Sway Custom Violet Flavour
 
 sway_violet_rice() {
     sudo pacman -Sy materia-gtk-theme
@@ -254,6 +268,8 @@ sway_violet_rice() {
     cd sway-violet-rice || exit
     bash vsrd.sh &
 }
+
+# Ricing Handler
 
 ricing_handler() {
     print_title "[!] R U RICING OR NOT"
@@ -291,7 +307,7 @@ check_user
 system_update
 install_os_utils
 install_yay
-install_nfs
+enable_nfs
 install_audio
 install_bluetooth
 install_colored
@@ -299,7 +315,7 @@ install_gpu
 install_zsh_plugins
 ricing_handler
 configure_sddm
-virtualization_handler
+#virtualization_handler
 containerization_handler
 install_secpack
 sudo rm -rf /tmp/*
