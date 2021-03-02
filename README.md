@@ -61,11 +61,14 @@ The next step will be configuring our freshly installed Arch Installation. It wi
 - [X] Browsers (firefox/qutebrowser)
 - [X] GPU Drivers (amdgpu)
 - [ ] Virtualization
-- [X] Containers
+- [ ] Containers
+- [X] Hardening Tools
 
 - [X] RICING :rice_ball:
   - [X] sway-violet-rice
   - [ ] sway-dracula-rice
+  - [ ] i3-violet-rice
+  - [ ] i3-dracula-rice
 
 The installation process is simple, just follow the steps until oh-my-zsh plugins are installed and a zsh shell is opened. Then exit this shell and the installation process will continue. Just press Enter when its needed, and make your choices when asked. It also will install several applications like Spotify. It's recommended to modify the `acs` script and add the utilities you want.
 

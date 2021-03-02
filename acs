@@ -15,6 +15,7 @@ fi
 
 install_os_utils() {
     print_title "[!] INSTALLING OS UTILITIES"
+    print_info "This will install tools like "
     sudo pacman -Sy --noconfirm cmake bc rsync mlocate bash-completion pkgstats git go curl wget zsh \
                     atop htop neofetch zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip \
                     dosfstools exfat-utils f2fs-tools fuse fuse-exfat autofs mtpfs cmus shellcheck jq mate-polkit \
@@ -29,16 +30,85 @@ enable_nfs() {
 }
 
 # Install security tools
-## TODO: hostblock, doas, rmlint, tripwire, aide, checksec, lynis
+## TODO: hostblock, aide, checksec, lynis
 
-install_secpack() {
+install_doas() {
+    print_info "'sudo' command is being replaced with 'doas'"
+    yay -Sy doas
+    echo "permit persist :wheel" | sudo tee /etc/doas.conf
+    echo "alias sudo=\"doas\"" >> ~/.config/zsh/alias.conf
+    sudo pacman -Rs sudo
+    yay --sudo doas --sudoflags -- --save
+}
+
+kernel_harden() {
+    print_info "Applying hardened kernel parameters"
+    # Disable unrestricted kernel debug and proc view
+    sudo sysctl kernel.dmesg_restrict=1
+    sudo sysctl kernel.kptr_restrict=1
+    sudo sysctl kernel.sysrq=0
+    #Prevent SYN dos attack
+    sudo sysctl net.ipv4.tcp_syncookies = 1
+    sudo sysctl net.ipv4.tcp_syn_retries = 2
+    sudo sysctl net.ipv4.tcp_synack_retries = 2
+    sudo sysctl net.ipv4.tcp_max_syn_backlog = 4096
+    # Disable packet forwarding
+    sudo sysctl net.ipv4.ip_forward = 0
+    sudo sysctl net.ipv4.conf.all.forwarding = 0
+    sudo sysctl net.ipv4.conf.default.forwarding = 0
+    sudo sysctl net.ipv6.conf.all.forwarding = 0
+    sudo sysctl net.ipv6.conf.default.forwarding = 0
+    # Enable IP spoofing protection
+    # Turn on source route verification
+    sudo sysctl net.ipv4.conf.all.rp_filter = 1
+    sudo sysctl net.ipv4.conf.default.rp_filter = 1
+    # Disable Redirect Acceptance
+    sudo sysctl net.ipv4.conf.all.accept_redirects = 0
+    sudo sysctl net.ipv4.conf.default.accept_redirects = 0
+    sudo sysctl net.ipv4.conf.all.secure_redirects = 0
+    sudo sysctl net.ipv4.conf.default.secure_redirects = 0
+    sudo sysctl net.ipv6.conf.all.accept_redirects = 0
+    sudo sysctl net.ipv6.conf.default.accept_redirects = 0
+    # Disable Redirect Sending
+    sudo sysctl net.ipv4.conf.all.send_redirects = 0
+    sudo sysctl net.ipv4.conf.default.send_redirects = 0
+    # Disable IP source routing
+    sudo sysctl net.ipv4.conf.all.accept_source_route = 0
+    sudo sysctl net.ipv4.conf.default.accept_source_route = 0
+    sudo sysctl net.ipv6.conf.all.accept_source_route = 0
+    sudo sysctl net.ipv6.conf.default.accept_source_route = 0
+    # Don't relay bootp
+    sudo sysctl net.ipv4.conf.all.bootp_relay = 0
+    # Disable proxy ARP
+    sudo sysctl net.ipv4.conf.all.proxy_arp = 0
+    sudo sysctl net.ipv4.conf.all.arp_ignore = 1
+    sudo sysctl net.ipv4.conf.all.arp_announce = 2
+    # Mitigate time-wait assassination hazards in TCP
+    sudo sysctl net.ipv4.tcp_rfc1337 = 1
+    # Enable bad error message Protection
+    sudo sysctl net.ipv4.icmp_ignore_bogus_error_responses = 1
+    # Enable ignoring broadcasts request
+    sudo sysctl net.ipv4.icmp_echo_ignore_broadcasts = 1
+    # Ensure that subsequent connections use the new values
+    sudo sysctl net.ipv4.route.flush = 1
+    sudo sysctl net.ipv6.route.flush = 1
+}
+
+security_handler() {
     print_title "[!] INSTALLING SECURITY TOOLS"
-    sudo pacman -Sy --noconfirm rkhunter clamav logwatch
-    #yay -Sy --answerclean A --answerdiff N aide
+    sudo pacman -Sy --noconfirm rkhunter clamav logwatch rmlint lynis checksec
     sudo systemctl enable clamav-daemon
     sudo freshclam -d -c 1
     sudo rkhunter --propupd
     sudo rkhunter --update
+    read_input_text "Want to replace 'sudo' with 'doas'?"
+    if [[ $OPTION == y ]]; then
+        install_doas
+    fi
+    read_input_text "Want to harden kernel params?"
+    if [[ $OPTION == y ]]; then
+        kernel_harden
+    fi
 }
 
 # Install audio utilities
@@ -144,13 +214,13 @@ configure_dns() {
 
 install_virtualbox() {
     print_title "[!] INSTALLING virtualbox"
-    yay -Sy virtualbox-bin virtualbox-ext-oracle
+    yay -Sy --noconfirm virtualbox-bin virtualbox-ext-oracle
 }
 
 install_kvm() {
     print_title "[!] INSTALLING qemu/kvm"
     echo "todo"
-    sudo pacman -Sy libvirt virt-manager dmidecode
+    sudo pacman -Sy --noconfirm libvirt virt-manager dmidecode
     sudo usermod -aG libvirt "$USER"
     sudo usermod -aG kvm "$USER"
     sudo systemctl enable libvirtd
@@ -164,14 +234,14 @@ virtualization_handler(){
         virt_list=("VirtualBox" "QUEMU/KVM"  "NONE")
         echo -e "Select your Virtualization Software: \n"
         select VIRT in "${virt_list[@]}"; do
-            if contains_element "$RICE" "${rice_list[@]}"; then
+            if contains_element "$VIRT" "${virt_list[@]}"; then
                 if [ "VirtualBox" == "$VIRT" ]; then
                     install_virtualbox
                     break
                 elif [ "QUEMU/KVM" == "$VIRT" ]; then
                     install_kvm
                     break
-                elif [ "NONE" == "$RICE" ]; then
+                elif [ "NONE" == "$VIRT" ]; then
                     break
                 fi
             else
@@ -188,7 +258,7 @@ containerization_handler(){
     print_title "[!] INSTALLING CONTAINERS"
     read_input_text "Want to install Podman as Containerization Software?"
     if [[ $OPTION == y ]]; then
-        sudo pacman -Sy crun podman       
+        sudo pacman -Sy --noconfirm crun podman       
         sudo touch /etc/{subgid,subuid}
         sudo usermod --add-subuids 165536-231072 --add-subgids 165536-231072 "$USER"
         podman system migrate
@@ -197,9 +267,49 @@ containerization_handler(){
     fi
 }
 
+common_rice() {
+    print_title "[!] INSTALLING COMMON RICE"
+    # Nano Colors
+    curl https://raw.githubusercontent.com/scopatz/nanorc/master/install.sh | sh
+    # Colored Pacman
+    sudo sed -i '33 s/#Color/Color/g' /etc/pacman.conf
+    # Setting Theme and icon Theme
+    gsettings set org.gnome.desktop.interface gtk-theme "$1"
+    sudo pacman -Sy --noconfirm papirus-icon-theme light mpc mpd mpv feh kitty qutebrowser ranger
+    gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
+    gpg --keyserver keyserver.ubuntu.com --recv-key 8FD3D9A8D3800305A9FFF259D1742AD60D811D58
+    yay -Sy --answerclean A --answerdiff N papirus-folders cava vscodium-bin nerd-fonts-noto spotify \
+              secure-delete tty-clock pipes.sh bettergram trash autotiling
+    papirus-folders --theme Papirus-Dark -C violet
+    # Ranger icons
+    git clone https://github.com/alexanderjeurissen/ranger_devicons ~/.config/ranger/plugins/ranger_devicons
+    # ZSH Plugins
+    install_zsh_plugins
+}
+
 # i3-gaps Rice
 
 i3_rice() {
+    print_title "[!] INSTALLING i3 RICE SOFTWARE"
+    sudo pacman -Sy --noconfirm xorg xorg-server picom dunst i3-gaps rofi scrot maim xclip
+    yay -Sy --answerclean A --answerdiff N i3lock-fancy
+}
+
+compile_polybar() {
+    echo "test"
+}
+
+i3_violet_rice() {
+    sudo pacman -Sy materia-gtk-theme
+    compile_polybar
+    common_rice "Materia-dark-compact"
+    cd /tmp || exit
+    git clone https://github.com/vol0s/sway-violet-rice
+    cd sway-violet-rice || exit
+    bash vird.sh &
+}
+
+i3_dracula_rice() {
     echo "todo"
 }
 
@@ -225,29 +335,9 @@ wayfire_rice() {
 
 sway_rice() {
     print_title "[!] INSTALLING SWAY RICE SOFTWARE"
-    sudo pacman -Sy --noconfirm xorg-server-xwayland sway wl-clipboard mako light mpc mpd mpv \
-            ncmpcpp wofi swayidle grim slurp feh kitty qutebrowser ranger qt5-wayland
-    yay -Sy --answerclean A --answerdiff N swaylock-effects-git autotiling
-}
-
-# Common Ricing software
-
-common_rice() {
-    print_title "[!] INSTALLING COMMON RICE"
-    # Nano Colors
-    curl https://raw.githubusercontent.com/scopatz/nanorc/master/install.sh | sh
-    # Colored Pacman
-    sudo sed -i '33 s/#Color/Color/g' /etc/pacman.conf
-    # Setting Theme and icon Theme
-    gsettings set org.gnome.desktop.interface gtk-theme "$1"
-    sudo pacman -Sy --noconfirm papirus-icon-theme
-    gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
-    gpg --keyserver keyserver.ubuntu.com --recv-key 8FD3D9A8D3800305A9FFF259D1742AD60D811D58
-    yay -Sy --answerclean A --answerdiff N papirus-folders cava vscodium-bin nerd-fonts-noto spotify \
-              secure-delete tty-clock pipes.sh bettergram trash
-    papirus-folders --theme Papirus-Dark -C violet
-    # Ranger icons
-    git clone https://github.com/alexanderjeurissen/ranger_devicons ~/.config/ranger/plugins/ranger_devicons
+    sudo pacman -Sy --noconfirm xorg-server-xwayland sway wl-clipboard mako \
+                wofi swayidle grim slurp qt5-wayland
+    yay -Sy --answerclean A --answerdiff N swaylock-effects-git
 }
 
 # Sway Custom Dracula Flavour # NOT FINISHED
@@ -275,19 +365,27 @@ ricing_handler() {
     print_title "[!] R U RICING OR NOT"
     read_input_text "Wanna rice?"
     if [[ $OPTION == y ]]; then
-        rice_list=("Sway Dracula Rice" "Sway Violet Rice" "KDE (NO RICE)" "NONE")
+        rice_list=("Sway Violet Rice" "KDE (NO RICE)" "NONE")
         PS3="$prompt1"
         echo -e "Select your rice: \n"
         select RICE in "${rice_list[@]}"; do
             if contains_element "$RICE" "${rice_list[@]}"; then
                 if [ "Sway Dracula Rice" == "$RICE" ]; then
                     echo "NOT FINISHED YET"
-                    #sway_rice
-                    #sway_dracula_rice
+                    sway_rice
+                    sway_dracula_rice
                     break
                 elif [ "Sway Violet Rice" == "$RICE" ]; then
                     sway_rice
                     sway_violet_rice
+                    break
+                elif [ "i3 Violet Rice" == "$RICE" ]; then
+                    i3_rice
+                    i3_violet_rice
+                    break
+                elif [ "i3 Dracula Rice" == "$RICE" ]; then
+                    i3_rice
+                    i3_dracula_rice
                     break
                 elif [ "KDE (NO RICE)" == "$RICE" ]; then
                     sudo pacman -Sy plasma konsole ksysguard
@@ -312,11 +410,10 @@ install_audio
 install_bluetooth
 install_colored
 install_gpu
-install_zsh_plugins
 ricing_handler
 configure_sddm
 #virtualization_handler
-containerization_handler
-install_secpack
+#containerization_handler
+security_handler
 sudo rm -rf /tmp/*
 sudo reboot
