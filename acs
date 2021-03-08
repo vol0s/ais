@@ -19,7 +19,7 @@ install_os_utils() {
     sudo pacman -Sy --noconfirm cmake bc rsync mlocate bash-completion pkgstats git go curl wget zsh \
                     atop htop neofetch zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip dnsutils rng-tools \
                     dosfstools exfat-utils f2fs-tools fuse fuse-exfat autofs mtpfs cmus shellcheck jq mate-polkit \
-                    molecule playerctl firefox chromium caja mat2 firejail ebtables dnsmasq meson ninja gtkmm3
+                    molecule playerctl firefox caja mat2 firejail ebtables dnsmasq meson ninja gtkmm3
 }
 
 enable_nfs() {
@@ -44,7 +44,7 @@ install_doas() {
 kernel_harden() {
     print_info "Applying hardened kernel parameters"
     # Disable unrestricted kernel debug and proc view
-    cd $PWD || exit
+    cd $1 || exit
     sudo cp sysctl.conf /etc/sysctl.conf
     sudo sysctl -p /etc/sysctl.conf
 }
@@ -59,7 +59,7 @@ security_handler() {
     print_info "[!] Hardening Kernel"
     read_input_text "Want to harden kernel params?"
     if [[ $OPTION == y ]]; then
-        kernel_harden
+        kernel_harden $1
     fi
     print_info "[!] Installing doas"
     read_input_text "Want to replace 'sudo' with 'doas'?"
@@ -222,10 +222,13 @@ containerization_handler(){
         podman system migrate
         echo "[registries.search]" | sudo tee -a /etc/containers/registries.conf
         echo "registries = ['registry.access.redhat.com', 'registry.fedoraproject.org', 'registry.centos.org', 'docker.io']" | sudo tee -a /etc/containers/registries.conf
+        sudo sed -i '8 s/driver=/driver=vfs/g' /etc/containers/storage.conf
     fi
 }
 
 spicetify_install() {
+    spotify &
+    pkill spotify
     sudo chmod a+wr /opt/spotify
     sudo chmod a+wr /opt/spotify/Apps -R
     spicetify
@@ -237,6 +240,13 @@ spicetify_install() {
     spicetify config current_theme Black
     spicetify config color_scheme Purple
     spicetify apply
+}
+
+vscodium_autotune() {
+    code --install-extension coenraads.bracket-pair-colorizer-2
+    code --install-extension itsjonq.owlet
+    code --install-extension timonwong.shellcheck
+    code --install-extension equinusocio.vsc-material-theme-icons
 }
 
 common_rice() {
@@ -251,7 +261,7 @@ common_rice() {
     gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
     gpg --keyserver keyserver.ubuntu.com --recv-key 8FD3D9A8D3800305A9FFF259D1742AD60D811D58
     yay -Sy --answerclean A --answerdiff N papirus-folders cava vscodium-bin nerd-fonts-noto spotify spicetify-cli \
-              secure-delete tty-clock pipes.sh joplin trash autotiling cmatrix-git ufetch gotop
+              secure-delete tty-clock pipes.sh trash autotiling cmatrix-git ufetch gotop
     papirus-folders --theme Papirus-Dark -C violet
     # Ranger icons
     git clone https://github.com/alexanderjeurissen/ranger_devicons ~/.config/ranger/plugins/ranger_devicons
@@ -259,6 +269,8 @@ common_rice() {
     install_zsh_plugins
     # Spicetify
     spicetify_install
+    # VSCodium
+    vscodium_autotune
 }
 
 # i3-gaps Rice
@@ -297,12 +309,6 @@ compile_waybar() {
     meson build
     ninja -C build
     sudo ninja -C build install
-}
-
-# WayfireWM Rice
-
-wayfire_rice() {
-    echo "todo"
 }
 
 # SwayWM Rice
@@ -375,7 +381,7 @@ ricing_handler() {
     fi
 }
 
-PWD=$(pwd)
+WS=$(pwd)
 check_archlinux
 check_user
 system_update
@@ -390,6 +396,6 @@ ricing_handler
 configure_sddm
 virtualization_handler
 containerization_handler
-security_handler
+security_handler $WS
 sudo rm -rf /tmp/*
 sudo reboot
