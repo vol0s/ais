@@ -17,7 +17,7 @@ install_os_utils() {
     print_title "[!] INSTALLING OS UTILITIES"
     print_info "This will install tools like "
     sudo pacman -Sy --noconfirm cmake bc rsync mlocate bash-completion pkgstats git go curl wget zsh \
-                    atop htop neofetch zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip \
+                    atop htop neofetch zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip dnsutils \
                     dosfstools exfat-utils f2fs-tools fuse fuse-exfat autofs mtpfs cmus shellcheck jq mate-polkit \
                     molecule playerctl firefox chromium caja mat2 firejail ebtables dnsmasq meson ninja gtkmm3
 }
@@ -30,7 +30,7 @@ enable_nfs() {
 }
 
 # Install security tools
-## TODO: hostblock, aide, checksec, lynis
+## TODO: hostblock, aide
 
 install_doas() {
     print_info "'sudo' command is being replaced with 'doas'"
@@ -148,7 +148,7 @@ install_gpu() {
     read_input_text "Want to install AMD GPU?"
     if [[ $OPTION == y ]]; then
         sudo pacman -Sy --noconfirm xf86-video-amdgpu mesa vulkan-radeon vulkan-tools mesa-libgl \
-                                    libvdpau-va-gl vulkan-icd-loader
+                                    libvdpau-va-gl vulkan-icd-loader mesa-vdpau 
         add_module "amdgpu radeon" "ati"
         if [ "$(ls /boot | grep hardened -c)" -gt "0" ]; then
             sudo mkinitcpio -p linux-hardened
@@ -206,7 +206,8 @@ configure_dns() {
     print_title "[!] CONFIGURING DNS"
     sudo rm /etc/resolv.conf
     sudo ln -s /run/NetworkManager/resolv.conf /etc/resolv.conf
-    echo "enabled=false" >> /usr/lib/NetworkManager/conf.d/20-connectivity.conf
+    sudo resolvconf -u
+    # echo "enabled=false" | sudo tee /usr/lib/NetworkManager/conf.d/20-connectivity.conf
 }
 
 # Install Virtualization
@@ -231,7 +232,7 @@ virtualization_handler(){
     read_input_text "Want to install Virtualization Software?"
     if [[ $OPTION == y ]]; then
         PS3="$prompt1"
-        virt_list=("VirtualBox" "QUEMU/KVM"  "NONE")
+        virt_list=("VirtualBox" "NONE")
         echo -e "Select your Virtualization Software: \n"
         select VIRT in "${virt_list[@]}"; do
             if contains_element "$VIRT" "${virt_list[@]}"; then
@@ -278,8 +279,9 @@ common_rice() {
     sudo pacman -Sy --noconfirm papirus-icon-theme light mpc mpd mpv feh kitty qutebrowser ranger
     gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
     gpg --keyserver keyserver.ubuntu.com --recv-key 8FD3D9A8D3800305A9FFF259D1742AD60D811D58
-    yay -Sy --answerclean A --answerdiff N papirus-folders cava vscodium-bin nerd-fonts-noto spotify \
-              secure-delete tty-clock pipes.sh bettergram trash autotiling
+    yay -Sy --answerclean A --answerdiff N papirus-folders cava vscodium-bin nerd-fonts-noto spotify spicetify-cli \
+              secure-delete tty-clock pipes.sh bettergram joplin trash autotiling cmatrix-git \
+              ufetch gotop tty-clock pipes.sh 
     papirus-folders --theme Papirus-Dark -C violet
     # Ranger icons
     git clone https://github.com/alexanderjeurissen/ranger_devicons ~/.config/ranger/plugins/ranger_devicons
@@ -291,12 +293,12 @@ common_rice() {
 
 i3_rice() {
     print_title "[!] INSTALLING i3 RICE SOFTWARE"
-    sudo pacman -Sy --noconfirm xorg xorg-server picom dunst i3-gaps rofi scrot maim xclip
+    sudo pacman -Sy --noconfirm xorg xorg-server picom dunst i3-gaps rofi scrot maim xclip nitrogen xautolock
     yay -Sy --answerclean A --answerdiff N i3lock-fancy
 }
 
 compile_polybar() {
-    echo "test"
+    yay -Sy --answerclean A --answerdiff N polybar-git
 }
 
 i3_violet_rice() {
@@ -304,8 +306,8 @@ i3_violet_rice() {
     compile_polybar
     common_rice "Materia-dark-compact"
     cd /tmp || exit
-    git clone https://github.com/vol0s/sway-violet-rice
-    cd sway-violet-rice || exit
+    git clone https://github.com/vol0s/i3-violet-rice
+    cd i3-violet-rice || exit
     bash vird.sh &
 }
 
@@ -365,7 +367,7 @@ ricing_handler() {
     print_title "[!] R U RICING OR NOT"
     read_input_text "Wanna rice?"
     if [[ $OPTION == y ]]; then
-        rice_list=("Sway Violet Rice" "KDE (NO RICE)" "NONE")
+        rice_list=("Sway Violet Rice" "i3 Violet Rice" "KDE (NO RICE)" "NONE")
         PS3="$prompt1"
         echo -e "Select your rice: \n"
         select RICE in "${rice_list[@]}"; do
@@ -384,6 +386,7 @@ ricing_handler() {
                     i3_violet_rice
                     break
                 elif [ "i3 Dracula Rice" == "$RICE" ]; then
+                    echo "NOT FINISHED YET"
                     i3_rice
                     i3_dracula_rice
                     break
@@ -412,8 +415,8 @@ install_colored
 install_gpu
 ricing_handler
 configure_sddm
-#virtualization_handler
-#containerization_handler
+virtualization_handler
+containerization_handler
 security_handler
 sudo rm -rf /tmp/*
 sudo reboot
