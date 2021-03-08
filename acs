@@ -17,7 +17,7 @@ install_os_utils() {
     print_title "[!] INSTALLING OS UTILITIES"
     print_info "This will install tools like "
     sudo pacman -Sy --noconfirm cmake bc rsync mlocate bash-completion pkgstats git go curl wget zsh \
-                    atop htop neofetch zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip dnsutils \
+                    atop htop neofetch zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip dnsutils rng-tools \
                     dosfstools exfat-utils f2fs-tools fuse fuse-exfat autofs mtpfs cmus shellcheck jq mate-polkit \
                     molecule playerctl firefox chromium caja mat2 firejail ebtables dnsmasq meson ninja gtkmm3
 }
@@ -44,70 +44,27 @@ install_doas() {
 kernel_harden() {
     print_info "Applying hardened kernel parameters"
     # Disable unrestricted kernel debug and proc view
-    sudo sysctl kernel.dmesg_restrict=1
-    sudo sysctl kernel.kptr_restrict=1
-    sudo sysctl kernel.sysrq=0
-    #Prevent SYN dos attack
-    sudo sysctl net.ipv4.tcp_syncookies = 1
-    sudo sysctl net.ipv4.tcp_syn_retries = 2
-    sudo sysctl net.ipv4.tcp_synack_retries = 2
-    sudo sysctl net.ipv4.tcp_max_syn_backlog = 4096
-    # Disable packet forwarding
-    sudo sysctl net.ipv4.ip_forward = 0
-    sudo sysctl net.ipv4.conf.all.forwarding = 0
-    sudo sysctl net.ipv4.conf.default.forwarding = 0
-    sudo sysctl net.ipv6.conf.all.forwarding = 0
-    sudo sysctl net.ipv6.conf.default.forwarding = 0
-    # Enable IP spoofing protection
-    # Turn on source route verification
-    sudo sysctl net.ipv4.conf.all.rp_filter = 1
-    sudo sysctl net.ipv4.conf.default.rp_filter = 1
-    # Disable Redirect Acceptance
-    sudo sysctl net.ipv4.conf.all.accept_redirects = 0
-    sudo sysctl net.ipv4.conf.default.accept_redirects = 0
-    sudo sysctl net.ipv4.conf.all.secure_redirects = 0
-    sudo sysctl net.ipv4.conf.default.secure_redirects = 0
-    sudo sysctl net.ipv6.conf.all.accept_redirects = 0
-    sudo sysctl net.ipv6.conf.default.accept_redirects = 0
-    # Disable Redirect Sending
-    sudo sysctl net.ipv4.conf.all.send_redirects = 0
-    sudo sysctl net.ipv4.conf.default.send_redirects = 0
-    # Disable IP source routing
-    sudo sysctl net.ipv4.conf.all.accept_source_route = 0
-    sudo sysctl net.ipv4.conf.default.accept_source_route = 0
-    sudo sysctl net.ipv6.conf.all.accept_source_route = 0
-    sudo sysctl net.ipv6.conf.default.accept_source_route = 0
-    # Don't relay bootp
-    sudo sysctl net.ipv4.conf.all.bootp_relay = 0
-    # Disable proxy ARP
-    sudo sysctl net.ipv4.conf.all.proxy_arp = 0
-    sudo sysctl net.ipv4.conf.all.arp_ignore = 1
-    sudo sysctl net.ipv4.conf.all.arp_announce = 2
-    # Mitigate time-wait assassination hazards in TCP
-    sudo sysctl net.ipv4.tcp_rfc1337 = 1
-    # Enable bad error message Protection
-    sudo sysctl net.ipv4.icmp_ignore_bogus_error_responses = 1
-    # Enable ignoring broadcasts request
-    sudo sysctl net.ipv4.icmp_echo_ignore_broadcasts = 1
-    # Ensure that subsequent connections use the new values
-    sudo sysctl net.ipv4.route.flush = 1
-    sudo sysctl net.ipv6.route.flush = 1
+    cd $PWD || exit
+    sudo cp sysctl.conf /etc/sysctl.conf
+    sudo sysctl -p /etc/sysctl.conf
 }
 
 security_handler() {
     print_title "[!] INSTALLING SECURITY TOOLS"
-    sudo pacman -Sy --noconfirm rkhunter clamav logwatch rmlint lynis checksec
+    sudo pacman -Sy --noconfirm rkhunter clamav logwatch rmlint lynis checksec arch-audit arpwatch
     sudo systemctl enable clamav-daemon
     sudo freshclam -d -c 1
     sudo rkhunter --propupd
     sudo rkhunter --update
-    read_input_text "Want to replace 'sudo' with 'doas'?"
-    if [[ $OPTION == y ]]; then
-        install_doas
-    fi
+    print_info "[!] Hardening Kernel"
     read_input_text "Want to harden kernel params?"
     if [[ $OPTION == y ]]; then
         kernel_harden
+    fi
+    print_info "[!] Installing doas"
+    read_input_text "Want to replace 'sudo' with 'doas'?"
+    if [[ $OPTION == y ]]; then
+        install_doas
     fi
 }
 
@@ -269,6 +226,8 @@ containerization_handler(){
 }
 
 spicetify_install() {
+    sudo chmod a+wr /opt/spotify
+    sudo chmod a+wr /opt/spotify/Apps -R
     spicetify
     spicetify backup apply enable-devtool
     cd /tmp || exit
@@ -277,6 +236,7 @@ spicetify_install() {
     cp -r * ~/.config/spicetify/Themes
     spicetify config current_theme Black
     spicetify config color_scheme Purple
+    spicetify apply
 }
 
 common_rice() {
@@ -415,6 +375,7 @@ ricing_handler() {
     fi
 }
 
+PWD=$(pwd)
 check_archlinux
 check_user
 system_update
