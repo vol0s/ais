@@ -37,7 +37,6 @@ install_doas() {
     yay -Sy doas
     echo "permit persist :wheel" | sudo tee /etc/doas.conf
     echo "alias sudo=\"doas\"" >> ~/.config/zsh/alias.conf
-    sudo pacman -Rs sudo
     yay --sudo doas --sudoflags -- --save
 }
 
@@ -45,8 +44,8 @@ kernel_harden() {
     print_info "Applying hardened kernel parameters"
     # Disable unrestricted kernel debug and proc view
     cd $1 || exit
-    sudo cp sysctl.conf /etc/sysctl.conf
-    sudo sysctl -p /etc/sysctl.conf
+    sudo cp sysctl.conf /etc/sysctl.d/sysctl.conf
+    sudo sysctl --system
 }
 
 security_handler() {
@@ -168,7 +167,7 @@ configure_dns() {
 }
 
 # Install Virtualization
-## ! BOTH NOT WORKING PROPERLY. FIX NEEDED.
+## ! KVM NOT WORKING PROPERLY. FIX NEEDED.
 
 install_virtualbox() {
     print_title "[!] INSTALLING virtualbox"
@@ -227,8 +226,6 @@ containerization_handler(){
 }
 
 spicetify_install() {
-    spotify &
-    pkill spotify
     sudo chmod a+wr /opt/spotify
     sudo chmod a+wr /opt/spotify/Apps -R
     spicetify
