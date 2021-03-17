@@ -37,13 +37,14 @@ install_doas() {
     yay -Sy doas
     echo "permit persist :wheel" | sudo tee /etc/doas.conf
     echo "alias sudo=\"doas\"" >> ~/.config/zsh/alias.conf
+    alias sudo="doas"
     yay --sudo doas --sudoflags -- --save
+    sudo pacman -Rs sudo
 }
 
 kernel_harden() {
     print_info "Applying hardened kernel parameters"
-    # Disable unrestricted kernel debug and proc view
-    cd $1 || exit
+    cd "$1" || exit
     sudo cp sysctl.conf /etc/sysctl.d/sysctl.conf
     sudo sysctl --system
 }
@@ -167,7 +168,6 @@ configure_dns() {
 }
 
 # Install Virtualization
-## ! KVM NOT WORKING PROPERLY. FIX NEEDED.
 
 install_virtualbox() {
     print_title "[!] INSTALLING virtualbox"
@@ -176,8 +176,7 @@ install_virtualbox() {
 
 install_kvm() {
     print_title "[!] INSTALLING qemu/kvm"
-    echo "todo"
-    sudo pacman -Sy --noconfirm libvirt virt-manager dmidecode
+    sudo pacman -Sy --noconfirm qemu libvirt virt-manager dmidecode
     sudo usermod -aG libvirt "$USER"
     sudo usermod -aG kvm "$USER"
     sudo systemctl enable libvirtd
@@ -188,7 +187,7 @@ virtualization_handler(){
     read_input_text "Want to install Virtualization Software?"
     if [[ $OPTION == y ]]; then
         PS3="$prompt1"
-        virt_list=("VirtualBox" "NONE")
+        virt_list=("VirtualBox" "QUEMU/KVM" "NONE")
         echo -e "Select your Virtualization Software: \n"
         select VIRT in "${virt_list[@]}"; do
             if contains_element "$VIRT" "${virt_list[@]}"; then
@@ -209,7 +208,6 @@ virtualization_handler(){
 }
 
 # Podman Containerization
-## WORKING OK BUT PROBLEMS WITH KVM
 
 containerization_handler(){
     print_title "[!] INSTALLING CONTAINERS"
@@ -221,7 +219,7 @@ containerization_handler(){
         podman system migrate
         echo "[registries.search]" | sudo tee -a /etc/containers/registries.conf
         echo "registries = ['registry.access.redhat.com', 'registry.fedoraproject.org', 'registry.centos.org', 'docker.io']" | sudo tee -a /etc/containers/registries.conf
-        sudo sed -i '8 s/driver=/driver=vfs/g' /etc/containers/storage.conf
+        sudo sed -i '8 s/driver = ""/driver = "vfs"/g' /etc/containers/storage.conf
     fi
 }
 
@@ -268,6 +266,9 @@ common_rice() {
     spicetify_install
     # VSCodium
     vscodium_autotune
+    # creating Directories
+    cd "$HOME" || exit
+    mkdir Pictures && mkdir Pictures/screenshots
 }
 
 # i3-gaps Rice
@@ -393,6 +394,6 @@ ricing_handler
 configure_sddm
 virtualization_handler
 containerization_handler
-security_handler $WS
+security_handler "$WS"
 sudo rm -rf /tmp/*
 sudo reboot
