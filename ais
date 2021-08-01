@@ -59,7 +59,7 @@ format_partitions() {
     mkfs.ext4 -L HOME /dev/sda4
 
     swapon /dev/disk/by-label/SWAP
-    mount /dev/disk/by-label/ROOT /mount
+    mount /dev/disk/by-label/ROOT /mnt
     mkdir "${MOUNTPOINT}"/boot
     mkdir "${MOUNTPOINT}"/home
     mount /dev/disk/by-label/HOME "${MOUNTPOINT}"/home
