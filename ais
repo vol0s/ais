@@ -4,8 +4,6 @@
 
 # LOADING SHARED FILE
 
-set -x
-
 if [[ -f $(pwd)/shared ]]; then
     source shared
 else
@@ -39,7 +37,6 @@ select_device() {
             invalid_option
         fi
     done
-    BOOT_MOUNTPOINT=$device
 }
 
 # SETUP PARTITION
@@ -131,9 +128,9 @@ configure_hostname() {
     print_title "[!] CONFIGURING HOSTNAME"
     echo "$HOSTNAME" > "${MOUNTPOINT}"/etc/hostname
     echo "hostname='$HOSTNAME'" > "${MOUNTPOINT}"/etc/conf.d/hostname
-    artix_chroot "echo \"127.0.0.1  \"$HOSTNAME\"\" >> /etc/hosts"
-    artix_chroot "echo \"::1  \"$HOSTNAME\"\" >> /etc/hosts"
-    artix_chroot "echo \"127.0.1.1  \"$HOSTNAME\".localdomain \"$HOSTNAME\"\" >> /etc/hosts"
+    artix_chroot "echo \"127.0.0.1  \"$HOSTNAME\" localhost\" >> /etc/hosts"
+    artix_chroot "echo \"::1  \"$HOSTNAME\" localhost\" >> /etc/hosts"
+    artix_chroot "echo \"127.0.1.1  \"$HOSTNAME\".localdomain localhost.localdomain \"$HOSTNAME\" localhost\" >> /etc/hosts"
 }
 
 # CONFIGURE TIMEZONE
@@ -198,7 +195,7 @@ finish() {
     print_warning "\nA copy of the AIS will be placed in /home/$USERNAME directory of your new system"
     cp -r /root/ais /mnt/home/"$USERNAME"
     rm -rf /root/ais
-    #artix_chroot "chown -R $USERNAME:users /home/$USERNAME/ais"
+    artix_chroot "chown -R \"$USERNAME\":users /home/\"$USERNAME\"/ais"
     umount_partitions
     pause_function
     poweroff
@@ -213,7 +210,6 @@ install_base_system
 configure_keymap
 configure_fstab
 configure_hostname
-pause_function
 configure_timezone
 configure_hardwareclock
 configure_locale
