@@ -85,7 +85,7 @@ select_linux_kernel() {
                 basestrap "${MOUNTPOINT}" base linux-zen linux-zen-headers
             fi
                 basestrap "${MOUNTPOINT}" \
-                    base-devel linux-firmware logrotate sudo perl neovim which net-tools git zsh connman openrc elogind-openrc
+                    base-devel linux-firmware logrotate sudo perl neovim which net-tools git zsh connman-openrc openrc elogind-openrc
             break
         else
             invalid_option
