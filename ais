@@ -202,7 +202,6 @@ finish() {
 
 check_root
 check_artixlinux
-package_install "$EDITOR"
 umount_partitions
 create_partition
 format_partitions
