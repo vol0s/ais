@@ -35,17 +35,9 @@ Enter your option: """
 # MOUNTPOINTS
 
 EFI_MOUNTPOINT="/boot"
-ROOT_MOUNTPOINT="/dev/sda1"
+ROOT_MOUNTPOINT="/dev/sda3"
 BOOT_MOUNTPOINT="/dev/sda"
 MOUNTPOINT="/mnt"
-
-# SCRIPT VARS
-
-UEFI=0
-LVM=0
-LUKS=0
-LUKS_DISK="sda2"
-TRIM=0
 
 # IO FUNCTIONS
 
@@ -121,33 +113,10 @@ check_user() {
     fi
 }
 
-check_archlinux() {
-    if [[ ! -e /etc/arch-release ]]; then
-        error_msg "ERROR! You must execute the script on Arch Linux."
+check_artixlinux() {
+    if [[ ! -e /etc/artix-release ]]; then
+        error_msg "ERROR! You must execute the script on Artix Linux."
     fi
-}
-
-check_boot_system() {
-    if [[ "$(cat /sys/class/dmi/id/sys_vendor)" =~ ^(\bApple\b) ]]; then
-        modprobe -r -q efivars || true  # if MAC
-    else
-        modprobe -q efivarfs            # all others
-    fi
-    if [[ -d "/sys/firmware/efi/" ]]; then
-        ## Mount efivarfs if it is not already mounted
-        if (mount | grep /sys/firmware/efi/efivars); then
-        mount -t efivarfs efivarfs /sys/firmware/efi/efivars
-        fi
-        UEFI=1
-        echo "UEFI Mode detected"
-    else
-        UEFI=0
-        echo "BIOS Mode detected"
-    fi
-}
-
-check_trim() {
-    [[ -n $(hdparm -I /dev/sda | grep TRIM 2> /dev/null) ]] && TRIM=1
 }
 
 # SYSTEM FUNCS
@@ -170,8 +139,8 @@ system_update() {
     sudo pacman -Syu --noconfirm
 }
 
-arch_chroot() {
-    arch-chroot $MOUNTPOINT /bin/bash -c "${1}"
+artix_chroot() {
+    artix-chroot $MOUNTPOINT /bin/bash -c "${1}"
 }
 
 contains_element() {

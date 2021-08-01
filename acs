@@ -32,12 +32,16 @@ enable_nfs() {
 # Install security tools
 ## TODO: hostblock, aide
 
+aliasdoas() {
+    alias sudo="doas"
+}
+
 install_doas() {
     print_info "'sudo' command is being replaced with 'doas'"
     yay -Sy doas
     echo "permit persist :wheel" | sudo tee /etc/doas.conf
     echo "alias sudo=\"doas\"" >> ~/.config/zsh/alias.conf
-    alias sudo="doas"
+    aliasdoas
     yay --sudo doas --sudoflags -- --save
     sudo pacman -Rs sudo
 }
