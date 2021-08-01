@@ -85,7 +85,8 @@ select_linux_kernel() {
                 basestrap "${MOUNTPOINT}" base linux-zen linux-zen-headers
             fi
                 basestrap "${MOUNTPOINT}" \
-                    base-devel linux-firmware logrotate sudo perl neovim which net-tools git zsh connman-openrc openrc elogind-openrc
+                    base-devel linux-firmware logrotate sudo perl neovim which net-tools git zsh connman-openrc \
+                    openrc elogind-openrc parted
             break
         else
             invalid_option
@@ -128,9 +129,9 @@ configure_hostname() {
     print_title "[!] CONFIGURING HOSTNAME"
     echo "$HOSTNAME" > "${MOUNTPOINT}"/etc/hostname
     echo "hostname='$HOSTNAME'" > "${MOUNTPOINT}"/etc/conf.d/hostname
-    artix_chroot "sed -i '/127.0.0.1/s/$/ 'localhost'/' /etc/hosts"
-    artix_chroot "sed -i '/::1/s/$/ 'localhost'/' /etc/hosts"
-    artix_chroot "sed -i '/127.0.1.1/s/$/ localhost.localdomain localhost'/' /etc/hosts"
+    #artix_chroot "sed -i '/127.0.0.1/s/$/ 'localhost'/' /etc/hosts"
+    #artix_chroot "sed -i '/::1/s/$/ 'localhost'/' /etc/hosts"
+    #artix_chroot "sed -i '/127.0.1.1/s/$/ localhost.localdomain localhost'/' /etc/hosts"
 }
 
 # CONFIGURE TIMEZONE
@@ -197,40 +198,23 @@ finish() {
     rm -rf /root/ais
     artix_chroot "chown -R $USERNAME:users /home/$USERNAME/ais"
     umount_partitions
-    pause_function
     poweroff
 }
 
 check_root
-pause_function
 check_artixlinux
-pause_function
 umount_partitions
-pause_function
 create_partition
-pause_function
 format_partitions
-pause_function
 install_base_system
-pause_function
 configure_keymap
-pause_function
 configure_fstab
-pause_function
 configure_hostname
-pause_function
 configure_timezone
-pause_function
 configure_hardwareclock
-pause_function
 configure_locale
-pause_function
 install_bootloader
-pause_function
 configure_bootloader
-pause_function
 root_password
-pause_function
 new_user
-pause_function
 finish
