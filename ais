@@ -200,6 +200,7 @@ finish() {
     rm -rf /root/ais
     artix_chroot "chown -R $USERNAME:users /home/$USERNAME/ais"
     umount_partitions
+    pause_function
     poweroff
 }
 
@@ -212,6 +213,7 @@ install_base_system
 configure_keymap
 configure_fstab
 configure_hostname
+pause_function
 configure_timezone
 configure_hardwareclock
 configure_locale
