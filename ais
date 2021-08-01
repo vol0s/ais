@@ -130,7 +130,7 @@ configure_hostname() {
     echo "hostname='$HOSTNAME'" > "${MOUNTPOINT}"/etc/conf.d/hostname
     artix_chroot "sed -i '/127.0.0.1/s/$/ 'localhost'/' /etc/hosts"
     artix_chroot "sed -i '/::1/s/$/ 'localhost'/' /etc/hosts"
-    artix_chroot "sed -i '/127.0.1.1/s/$/ '${host_name}.localdomain ${host_name}'/' /etc/hosts"
+    artix_chroot "sed -i '/127.0.1.1/s/$/ localhost.localdomain localhost'/' /etc/hosts"
 }
 
 # CONFIGURE TIMEZONE
@@ -197,6 +197,7 @@ finish() {
     rm -rf /root/ais
     artix_chroot "chown -R $USERNAME:users /home/$USERNAME/ais"
     umount_partitions
+    pause_function
     poweroff
 }
 
@@ -233,4 +234,3 @@ pause_function
 new_user
 pause_function
 finish
-pause_function
