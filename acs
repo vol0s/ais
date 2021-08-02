@@ -45,8 +45,8 @@ kernel_harden() {
 
 security_handler() {
     print_title "[!] INSTALLING SECURITY TOOLS"
-    sudo pacman -Sy --noconfirm clamav
-    sudo systemctl enable clamav-daemon
+    yay -Sy --answerclean A --answerdiff N clamav-openrc
+    sudo rc-update add clamav
     sudo freshclam -d -c 1
     print_info "[!] Hardening Kernel"
     read_input_text "Want to harden kernel params?"
@@ -120,7 +120,6 @@ install_gpu() {
             sudo mkinitcpio -p linux
         fi
     fi
-    #yay -Sy vulkan-amdgpu-pro
 }
 
 # Install Yay
@@ -275,8 +274,6 @@ i3_violet_rice() {
 i3_dracula_rice() {
     echo "todo"
 }
-
-# Compiling & installing waybar
 
 # Ricing Handler
 
