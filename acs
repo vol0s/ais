@@ -27,16 +27,11 @@ install_os_utils() {
 # Install security tools
 ## TODO: hostblock, aide
 
-aliasdoas() {
-    echo "alias sudo=\"doas\"" >> ~/.config/zsh/alias.conf
-    alias sudo="doas"
-}
-
 install_doas() {
     print_info "'sudo' command is being replaced with 'doas'"
-    yay -Sy opendoas
+    yay -Sy --answerclean A --answerdiff N opendoas
     echo "permit persist :wheel" | sudo tee /etc/doas.conf
-    aliasdoas
+    echo "alias sudo=\"doas\"" >> ~/.config/zsh/alias.conf
     yay --sudo doas --sudoflags -- --save
     sudo pacman -Rs sudo
 }
@@ -50,21 +45,16 @@ kernel_harden() {
 
 security_handler() {
     print_title "[!] INSTALLING SECURITY TOOLS"
-    sudo pacman -Sy --noconfirm rkhunter clamav logwatch rmlint lynis checksec arch-audit arpwatch
+    sudo pacman -Sy --noconfirm clamav
     sudo systemctl enable clamav-daemon
     sudo freshclam -d -c 1
-    sudo rkhunter --propupd
-    sudo rkhunter --update
     print_info "[!] Hardening Kernel"
     read_input_text "Want to harden kernel params?"
     if [[ $OPTION == y ]]; then
         kernel_harden $1
     fi
     print_info "[!] Installing doas"
-    read_input_text "Want to replace 'sudo' with 'doas'?"
-    if [[ $OPTION == y ]]; then
-        install_doas
-    fi
+    install_doas
 }
 
 # Install audio utilities
@@ -100,13 +90,13 @@ install_colored() {
     tar -xvf lsd-0.20.1-x86_64-unknown-linux-gnu.tar.gz
     sudo mv lsd-0.20.1-x86_64-unknown-linux-gnu /opt/lsd
     sudo ln -sn /opt/lsd/lsd /usr/local/bin/lsd
-
+    pause_function
     print_info "Installing BAT"
     wget https://github.com/sharkdp/bat/releases/download/v0.18.2/bat-v0.18.2-x86_64-unknown-linux-gnu.tar.gz
     tar -xvf bat-v0.18.2-x86_64-unknown-linux-gnu.tar.gz
     sudo mv bat-v0.18.2-x86_64-unknown-linux-gnu /opt/bat
     sudo ln -sn /opt/bat/bat /usr/local/bin/bat
-    
+    pause_function
     print_info "Installing GRC"
     yay -Sy --noconfirm grc-devel-git
 }
@@ -237,6 +227,7 @@ common_rice() {
     print_title "[!] INSTALLING COMMON RICE"
     # Nano Colors
     curl https://raw.githubusercontent.com/scopatz/nanorc/master/install.sh | sh
+    pause_function
     # Colored Pacman
     sudo sed -i '33 s/#Color/Color/g' /etc/pacman.conf
     # Setting Theme and icon Theme
@@ -246,6 +237,7 @@ common_rice() {
     yay -Sy --answerclean A --answerdiff N papirus-icon-theme-git papirus-folders-git cava-git nerd-fonts-noto spotify \
                                             mpc-git kitty-git qutebrowser-git firefox-bin playerctl-git spotify secure-delete \
                                             tty-clock pipes.sh trash cmatrix-git gotop-git
+    pause_function
     gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
     papirus-folders --theme Papirus-Dark -C violet
     pip install autotiling
@@ -328,11 +320,12 @@ install_yay
 install_audio
 install_bluetooth
 install_colored
+pause_function
 install_gpu
 ricing_handler
 configure_sddm
 virtualization_handler
 containerization_handler
 security_handler "$WS"
-sudo rm -rf /tmp/*
-sudo reboot
+doas rm -rf /tmp/*
+doas reboot
