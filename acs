@@ -154,7 +154,7 @@ configure_sddm() {
     sudo cp -r sddm-slice /usr/share/sddm/themes/sddm-slice
     sudo mkdir /etc/sddm.conf.d
     sudo cp /usr/lib/sddm/sddm.conf.d/default.conf /etc/sddm.conf.d/
-    sudo sed -i '33 s/Current=/Current=sddm-slice/g' /etc/sddm.conf.d/default.conf
+    sudo sed -i '40 s/Current=/Current=sddm-slice/g' /etc/sddm.conf.d/default.conf
     sudo rc-update add sddm
 }
 
@@ -236,10 +236,10 @@ common_rice() {
     gpg --keyserver keyserver.ubuntu.com --recv-key 8FD3D9A8D3800305A9FFF259D1742AD60D811D58
     yay -Sy --answerclean A --answerdiff N  papirus-icon-theme-git papirus-folders-git cava-git nerd-fonts-noto spotify \
                                             mpc-git kitty-git qutebrowser-git firefox-bin playerctl-git spotify secure-delete \
-                                            tty-clock pipes.sh trash cmatrix-git gotop-git lightcord-git
+                                            tty-clock pipes.sh trash cmatrix-git gotop-git lightcord-git visual-studio-code-bin
     gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
     papirus-folders --theme Papirus-Dark -C violet
-    pip install autotiling
+    sudo pip install autotiling
     # Ranger icons
     git clone https://github.com/alexanderjeurissen/ranger_devicons ~/.config/ranger/plugins/ranger_devicons
     # ZSH Plugins
@@ -313,6 +313,7 @@ check_artixlinux
 check_user
 system_update
 install_os_utils
+configure_dns
 install_yay
 install_audio
 install_bluetooth

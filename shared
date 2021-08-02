@@ -7,6 +7,7 @@
 
 KEYMAP="es"
 TIMEZONE_PATH="Europe/Madrid"
+NTP_STRING="0.es.pool.ntp.org"
 LOCALE_GEN="es_ES.UTF-8"
 HOSTNAME="host"
 USERNAME="user"
