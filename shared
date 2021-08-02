@@ -118,15 +118,8 @@ check_artixlinux() {
 
 # SYSTEM FUNCS
 
-start_module() {
-    sudo modprobe "$1"
-}
-
 add_module() {
-    for module in "$@"; do
-        echo "$module" | sudo tee /etc/modprobe.d/"${module}".conf
-        start_module "$module"
-    done
+   echo "modules="\"$1\""" | sudo tee /etc/conf.d/modules
 }
 
 system_update() {
