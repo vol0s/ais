@@ -275,7 +275,7 @@ i3_violet_rice() {
     compile_polybar
     common_rice "Materia-dark-compact"
     cd /tmp || exit
-    git clone https://github.com/vol0s/i3-violet-rice
+    git clone --branch artix https://github.com/vol0s/i3-violet-rice
     cd i3-violet-rice || exit
     bash vird.sh &
 }
