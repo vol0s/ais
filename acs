@@ -170,6 +170,9 @@ configure_dns() {
 install_virtualbox() {
     print_title "[!] INSTALLING virtualbox"
     yay -Sy --noconfirm --answerclean A --answerdiff N virtualbox-bin
+    sudo sed -i 's/.$//g' /etc/conf.d/modules
+    sudo sed -in 's/$/ vboxdrv"/g' /etc/conf.d/modules
+    sudo modprobe vboxdrv   
 }
 
 install_kvm() {
@@ -177,7 +180,7 @@ install_kvm() {
     sudo pacman -Sy --noconfirm qemu libvirt virt-manager dmidecode
     sudo usermod -aG libvirt "$USER"
     sudo usermod -aG kvm "$USER"
-    sudo systemctl enable libvirtd
+    sudo rc-update add libvirtd
 }
 
 virtualization_handler(){
