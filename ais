@@ -42,6 +42,7 @@ select_device() {
 # SETUP PARTITION
 
 create_partition() {
+    print_title "[!] CREATING PARTITIONS"
     select_device
     cfdisk "${device}"
 }
@@ -110,7 +111,6 @@ install_base_system() {
 
 configure_keymap() {
     print_title "[!] CONFIGURING KEYMAP"
-    #ADD KEYMAP TO THE NEW SETUP
     echo "KEYMAP=$KEYMAP" > "${MOUNTPOINT}"/etc/vconsole.conf
     sed -i '3 s/keymap="us"/keymap="es"/g' "${MOUNTPOINT}"/etc/conf.d/keymaps
 }
@@ -195,9 +195,8 @@ finish() {
     print_warning "\nA copy of the AIS will be placed in /home/$USERNAME directory of your new system"
     cp -r /root/ais /mnt/home/"$USERNAME"
     rm -rf /root/ais
-    artix_chroot "chown -R \"$USERNAME\":users /home/\"$USERNAME\"/ais"
+    #artix_chroot "chown -R \"$USERNAME\":users /home/\"$USERNAME\"/ais"
     umount_partitions
-    pause_function
     poweroff
 }
 

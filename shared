@@ -6,12 +6,9 @@
 ### CONFIGURATION VARS ###
 
 KEYMAP="es"
-MIRROR_COUNTRY="Spain"
 TIMEZONE_PATH="Europe/Madrid"
 LOCALE_GEN="es_ES.UTF-8"
-NTP_STRING="0.es.pool.ntp.org 1.es.pool.ntp.org"
 HOSTNAME="host"
-EDITOR="nano"
 USERNAME="user"
 
 # COLORS
@@ -126,11 +123,8 @@ start_module() {
 }
 
 add_module() {
-    for module in $1; do
-        #check if the name of the module can be the same of the module or the given name
-        [[ $# -lt 2 ]] && local _module_name="$module" || local _module_name="$2"
-        local _has_module=$(grep "$module" /etc/modules-load.d/"${_module_name}".conf 2>&1)
-        [[ -z $_has_module ]] && echo "$module" | sudo tee /etc/modules-load.d/"${_module_name}".conf
+    for module in "$@"; do
+        echo "$module" | sudo tee /etc/modprobe.d/"${module}".conf
         start_module "$module"
     done
 }
