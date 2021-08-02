@@ -86,7 +86,7 @@ select_linux_kernel() {
             fi
                 basestrap "${MOUNTPOINT}" \
                     base-devel linux-firmware logrotate sudo perl neovim which net-tools git zsh connman-openrc \
-                    openrc elogind-openrc parted sed nano
+                    openrc elogind-openrc ntp-openrc parted sed nano
             break
         else
             invalid_option
@@ -139,7 +139,7 @@ configure_timezone() {
     print_title "[!] CONFIGURING TIMEZONE"
     artix_chroot "ln -sf /usr/share/zoneinfo/${TIMEZONE_PATH} /etc/localtime"
     artix_chroot "echo \"server \"$NTP_STRING\"\" >> /etc/ntpd.conf"
-    artix_chroot "rc-update add ntpd"
+    artix_chroot "rc-update add ntp-client"
 }
 
 # CONFIGURE HARDWARECLOCK
