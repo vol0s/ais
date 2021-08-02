@@ -107,7 +107,7 @@ install_gpu() {
     if [[ $OPTION == y ]]; then
         sudo pacman -Sy --noconfirm --answerclean A --answerdiff N xf86-video-amdgpu mesa vulkan-radeon vulkan-tools mesa-libgl \
                                                                     vulkan-icd-loader mesa-vdpau 
-        add_module "amdgpu" "radeon"
+        add_module "amdgpu radeon"
         if [ "$(ls /boot | grep hardened -c)" -gt "0" ]; then
             sudo mkinitcpio -p linux-hardened
         elif [ "$(ls /boot | grep lts -c)" -gt "0" ]; then
