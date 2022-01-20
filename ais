@@ -7,7 +7,7 @@
 if [[ -f $(pwd)/shared ]]; then
     source shared
 else
-    echo "missing file: shared"
+    echo "Missing file: shared"
     exit 1
 fi
 
@@ -76,17 +76,17 @@ select_linux_kernel() {
     select VERSION in "${version_list[@]}"; do
         if contains_element "$VERSION" "${version_list[@]}"; then
             if [ "linux (default)" == "$VERSION" ]; then
-                basestrap "${MOUNTPOINT}" base linux linux-headers
+                basestrap "${MOUNTPOINT}" base base-devel linux linux-headers openrc elogind-openrc
             elif [ "linux-lts (long term support)" == "$VERSION" ]; then
-                basestrap "${MOUNTPOINT}" base linux-lts linux-lts-headers
+                basestrap "${MOUNTPOINT}" base base-devel linux-lts linux-lts-headers openrc elogind-openrc
             elif [ "linux-hardened (security features)" == "$VERSION" ]; then
-                basestrap "${MOUNTPOINT}" base linux-hardened linux-hardened-headers
+                basestrap "${MOUNTPOINT}" base base-devel linux-hardened linux-hardened-headers openrc elogind-openrc
             elif [ "linux-zen (tuned kernel)" == "$VERSION" ]; then
-                basestrap "${MOUNTPOINT}" base linux-zen linux-zen-headers
+                basestrap "${MOUNTPOINT}" base base-devel linux-zen linux-zen-headers openrc elogind-openrc
             fi
                 basestrap "${MOUNTPOINT}" \
-                    base-devel linux-firmware logrotate sudo perl neovim which net-tools git zsh connman-openrc \
-                    openrc elogind-openrc ntp-openrc parted sed nano
+                    linux-firmware logrotate sudo perl neovim which net-tools git zsh connman-openrc \
+                    ntp-openrc parted sed nano
             break
         else
             invalid_option
@@ -195,8 +195,8 @@ new_user() {
 finish() {
     print_title "[!] INSTALL COMPLETED"
     print_warning "\nA copy of the AIS will be placed in /home/$USERNAME directory of your new system"
-    cp -r /root/ais /mnt/home/"$USERNAME"
-    rm -rf /root/ais
+    cp -r /home/artix/ais /mnt/home/"$USERNAME"
+    rm -rf /home/artix/ais
     #artix_chroot "chown -R \"$USERNAME\":users /home/\"$USERNAME\"/ais"
     umount_partitions
     poweroff
