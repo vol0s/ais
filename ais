@@ -139,7 +139,7 @@ configure_timezone() {
     print_title "[!] CONFIGURING TIMEZONE"
     artix_chroot "ln -sf /usr/share/zoneinfo/${TIMEZONE_PATH} /etc/localtime"
     artix_chroot "echo \"server \"$NTP_STRING\"\" >> /etc/ntpd.conf"
-    artix_chroot "rc-update add ntp-client"
+    artix_chroot "rc-update add ntpd"
 }
 
 # CONFIGURE HARDWARECLOCK
