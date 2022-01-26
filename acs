@@ -33,7 +33,7 @@ install_doas() {
     echo "permit persist :wheel" | sudo tee /etc/doas.conf
     echo "alias sudo=\"doas\"" >> ~/.config/zsh/alias.conf
     yay --sudo doas --sudoflags -- --save
-    sudo pacman -Rs sudo
+    sudo pacman -Rs --noconfirm sudo
 }
 
 kernel_harden() {
@@ -41,6 +41,14 @@ kernel_harden() {
     cd "$1" || exit
     sudo cp sysctl.conf /etc/sysctl.d/sysctl.conf
     sudo sysctl --system
+}
+
+add_blackarch() {
+    print_info "Installing Bl4ckArch keys & repo"
+    cd "$1" || exit
+    curl -O https://blackarch.org/strap.sh
+    chmod +x strap.sh
+    sudo ./strap.sh
 }
 
 security_handler() {
@@ -52,6 +60,10 @@ security_handler() {
     read_input_text "Want to harden kernel params?"
     if [[ $OPTION == y ]]; then
         kernel_harden $1
+    fi
+    read_input_text "Want to Install Hacking repos?"
+    if [[ $OPTION == y ]]; then
+        add_blackarch $1
     fi
     print_info "[!] Installing doas"
     install_doas
