@@ -20,7 +20,6 @@ The Repository will consist of 4 scripts:
 
 - ais [Arch Install Script]
 - acs [Arch Config Script]
-- aps [Arch Pentest Script]
 - shared [Shared Code]
 
 ### AIS [Arch Install Script] Installation :mag:
@@ -61,8 +60,12 @@ The next step will be configuring our freshly installed Arch Installation. It wi
 - [X] Browsers (firefox/qutebrowser)
 - [X] GPU Drivers (amdgpu)
 - [ ] Virtualization
-- [ ] Containers
+  - [X] VirtualBox
+  - [ ] KVM/QEMU
+- [ ] Containers (Podman)?
 - [X] Hardening Tools
+  - [X] Doas
+- [X] Hacking Tools (BlackArch)
 
 - [X] RICING :rice_ball:
   - [X] i3-violet-rice
@@ -73,18 +76,11 @@ The installation process is simple, just follow the steps until oh-my-zsh plugin
 ```bash
 ./acs
 ```
-### APS [Arch Pentest Script] Pentesting :mag:
 
-This script will set a full pentest environment for our Arch-Linux installation. ### WORK IN PROGRESS ###
-
-```bash
-./aps
-```
 ## Roadmap :calendar:
 
 - [X] AIS [Arch Install Script]
 - [X] ACS [Arch Config Script]
-- [ ] APS [Arch Pentest Script]
 
 ## Thanx helmuthdu :kissing_heart:
 
