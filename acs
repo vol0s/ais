@@ -86,14 +86,14 @@ install_colored() {
     print_title "[!] INSTALLING COLORED UTILS"
     print_info "Installing LSD "
     cd /tmp || exit
-    wget https://github.com/Peltoche/lsd/releases/download/0.20.1/lsd-0.20.1-x86_64-unknown-linux-gnu.tar.gz
-    tar -xvf lsd-0.20.1-x86_64-unknown-linux-gnu.tar.gz
-    sudo mv lsd-0.20.1-x86_64-unknown-linux-gnu /opt/lsd
+    wget https://github.com/Peltoche/lsd/releases/download/0.21.0/lsd-0.21.0-x86_64-unknown-linux-gnu.tar.gz
+    tar -xvf lsd-0.21.0-x86_64-unknown-linux-gnu.tar.gz
+    sudo mv lsd-0.21.0-x86_64-unknown-linux-gnu /opt/lsd
     sudo ln -sn /opt/lsd/lsd /usr/local/bin/lsd
     print_info "Installing BAT"
-    wget https://github.com/sharkdp/bat/releases/download/v0.18.2/bat-v0.18.2-x86_64-unknown-linux-gnu.tar.gz
-    tar -xvf bat-v0.18.2-x86_64-unknown-linux-gnu.tar.gz
-    sudo mv bat-v0.18.2-x86_64-unknown-linux-gnu /opt/bat
+    wget https://github.com/sharkdp/bat/releases/download/v0.19.0/bat-v0.19.0-x86_64-unknown-linux-gnu.tar.gz
+    tar -xvf bat-v0.19.0-x86_64-unknown-linux-gnu.tar.gz
+    sudo mv bat-v0.19.0-x86_64-unknown-linux-gnu /opt/bat
     sudo ln -sn /opt/bat/bat /usr/local/bin/bat
     print_info "Installing GRC"
     yay -Sy --noconfirm --answerclean A --answerdiff N --noconfirm grc-devel-git
@@ -128,6 +128,15 @@ install_yay() {
     git clone https://aur.archlinux.org/yay.git
     cd yay || exit
     makepkg -csi --noconfirm
+}
+
+install_kitty() {
+    print_title "[!] INSTALLING KITTY"
+    curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
+    ln -s ~/.local/kitty.app/bin/kitty /usr/local/bin/
+    cp ~/.local/kitty.app/share/applications/kitty.desktop ~/.local/share/applications/
+    sed -i "s|Icon=kitty|Icon=/home/$USER/.local/kitty.app/share/icons/hicolor/256x256/apps/kitty.png|g" ~/.local/share/applications/kitty.desktop
+
 }
 
 # Installing oh-my-zsh and plugins
@@ -169,7 +178,7 @@ configure_dns() {
 
 install_virtualbox() {
     print_title "[!] INSTALLING virtualbox"
-    yay -Sy --noconfirm --answerclean A --answerdiff N virtualbox-bin virtualbox-ext-pack
+    yay -Sy --noconfirm --answerclean A --answerdiff N virtualbox-bin virtualbox-ext-oracle
     sudo sed -i 's/.$//g' /etc/conf.d/modules
     sudo sed -in 's/$/ vboxdrv"/g' /etc/conf.d/modules
     sudo modprobe vboxdrv   
@@ -235,8 +244,8 @@ common_rice() {
     sudo pacman -Sy --noconfirm mpd mpv ranger feh
     gpg --keyserver keyserver.ubuntu.com --recv-key 8FD3D9A8D3800305A9FFF259D1742AD60D811D58
     yay -Sy --answerclean A --answerdiff N  papirus-icon-theme-git papirus-folders-git cava-git nerd-fonts-noto \
-                                            mpc-git kitty-git qutebrowser-git firefox-bin playerctl-git spotify secure-delete \
-                                            tty-clock pipes.sh trash cmatrix-git gotop-git visual-studio-code-bin
+                                            mpc-git qutebrowser-git firefox-bin playerctl-git spotify secure-delete \
+                                            tty-clock pipes.sh trash cmatrix-git gotop-git vscodium-bin
     gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
     papirus-folders --theme Papirus-Dark -C violet
     sudo pip install autotiling
@@ -264,6 +273,7 @@ compile_polybar() {
 i3_violet_rice() {
     yay -Sy --answerclean A --answerdiff N  --noconfirm sweet-gtk-theme-dark
     compile_polybar
+    install_kitty
     common_rice "Sweet-Dark"
     cd /tmp || exit
     git clone --branch artix https://github.com/vol0s/i3-violet-rice

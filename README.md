@@ -10,7 +10,9 @@ Custom scripts made in order to automate Arch-Linux's installation & configurati
 
 - Increase cowspace partition: `mount -o remount,size=2G /run/archiso/cowspace`
 - Get list of packages and install git: `pacman -Sy git`
-- Get the script: `git clone git://github.com/vol0s/ais`
+- Get the script: `git clone https://github.com/vol0s/ais`
+- Go to the downloaded directory: `cd ais`
+- Checkout to the Artix Branch: `git checkout artix`
 
 ## How to use AIS :ice_cube:
 
@@ -36,7 +38,7 @@ HOSTNAME="arch"
 EDITOR="vi"
 ```
 
-Once we've edited these variables we will be ready to launch our `ais` script, which will ask us for the rest of specifications. For the moment it has only been tested with DOS partitioning, and the Default Mode needs a SWAP partition. This Script will also configure the network via `NetworkManager` service's DHCP and grant sudo to our created user.
+Once we've edited these variables we will be ready to launch our `ais` script, which will ask us for the rest of specifications. For the moment it has only been tested with DOS partitioning, and the Default Mode needs a SWAP partition. This Script will also configure the network via `connman-openrc` service's DHCP and grant sudo to our created user.
 
 ```bash
 ./ais
@@ -54,9 +56,7 @@ The next step will be configuring our freshly installed Arch Installation. It wi
 - [X] NFS/NTFS
 - [X] Desktop Env
   - [X] KDE
-  - [ ] i3-gaps
-  - [X] Sway
-  - [ ] Wayfire
+  - [X] i3-gaps
 - [X] Display Manager (sddm)
 - [X] Browsers (firefox/qutebrowser)
 - [X] GPU Drivers (amdgpu)
@@ -65,9 +65,7 @@ The next step will be configuring our freshly installed Arch Installation. It wi
 - [X] Hardening Tools
 
 - [X] RICING :rice_ball:
-  - [X] sway-violet-rice
-  - [ ] sway-dracula-rice
-  - [ ] i3-violet-rice
+  - [X] i3-violet-rice
   - [ ] i3-dracula-rice
 
 The installation process is simple, just follow the steps until oh-my-zsh plugins are installed and a zsh shell is opened. Then exit this shell and the installation process will continue. Just press Enter when its needed, and make your choices when asked. It also will install several applications like Spotify. It's recommended to modify the `acs` script and add the utilities you want.
