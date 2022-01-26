@@ -133,7 +133,7 @@ install_yay() {
 install_kitty() {
     print_title "[!] INSTALLING KITTY"
     curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
-    ln -s ~/.local/kitty.app/bin/kitty /usr/local/bin/
+    sudo ln -s ~/.local/kitty.app/bin/kitty /usr/local/bin/
     cp ~/.local/kitty.app/share/applications/kitty.desktop ~/.local/share/applications/
     sed -i "s|Icon=kitty|Icon=/home/$USER/.local/kitty.app/share/icons/hicolor/256x256/apps/kitty.png|g" ~/.local/share/applications/kitty.desktop
 
@@ -143,7 +143,7 @@ install_kitty() {
 
 install_zsh_plugins() {
     print_title "[!] INSTALLING ZSH PLUGINS"
-    sh -c \\"$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)\\"
+    sh -c \\"$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)\\" \\"\\" --unattended
     git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"/themes/powerlevel10k
     git clone https://github.com/zsh-users/zsh-completions "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"/plugins/zsh-completions
     git clone https://github.com/zsh-users/zsh-autosuggestions "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"/plugins/zsh-autosuggestions
@@ -256,6 +256,7 @@ common_rice() {
     # creating Directories
     cd "$HOME" || exit
     mkdir Pictures && mkdir Pictures/screenshots
+    mkdir Downloads && mkdir Documents && mkdir Music && mkdir Tools
 }
 
 # i3-gaps Rice
