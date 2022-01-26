@@ -1,6 +1,6 @@
-<h1 align="center">Arch Install Scripts</h1>
+<h1 align="center">Artix Install Scripts</h1>
 
-Custom scripts made in order to automate Arch-Linux's installation & configuration. :ice_cube:
+Custom scripts made in order to automate Artix-Linux's installation & configuration. :ice_cube:
 
 ## Note :memo:
 
@@ -8,7 +8,7 @@ Custom scripts made in order to automate Arch-Linux's installation & configurati
 
 ## Obtaining The Repository :bangbang:
 
-- Increase cowspace partition: `mount -o remount,size=2G /run/archiso/cowspace`
+- Increase cowspace partition: `mount -o remount,size=2G /run/artix/cowspace`
 - Get list of packages and install git: `pacman -Sy git`
 - Get the script: `git clone https://github.com/vol0s/ais`
 - Go to the downloaded directory: `cd ais`
@@ -18,11 +18,11 @@ Custom scripts made in order to automate Arch-Linux's installation & configurati
 
 The Repository will consist of 4 scripts: 
 
-- ais [Arch Install Script]
-- acs [Arch Config Script]
+- ais [Artix Install Script]
+- acs [Artix Config Script]
 - shared [Shared Code]
 
-### AIS [Arch Install Script] Installation :mag:
+### AIS [Artix Install Script] Installation :mag:
 
 First of all we need to edit some variables inside the `shared` script, so as to satisfy our personal needs. Ex:
 
@@ -33,7 +33,7 @@ TIMEZONE_PATH="Europe/Madrid"
 LOCALE_GEN="es_ES.UTF-8"
 NTP_STRING="0.es.pool.ntp.org 1.es.pool.ntp.org"
 USERNAME="user"
-HOSTNAME="arch"
+HOSTNAME="artix"
 EDITOR="vi"
 ```
 
@@ -43,9 +43,9 @@ Once we've edited these variables we will be ready to launch our `ais` script, w
 ./ais
 ```
 
-### ACS [Arch Config Script] Configuration :mag:
+### ACS [Artix Config Script] Configuration :mag:
 
-The next step will be configuring our freshly installed Arch Installation. It will handle the following configs. It will also ask for Ricing Dotfiles if a Tiling WM is selected.
+The next step will be configuring our freshly installed Artix Installation. It will handle the following configs. It will also ask for Ricing Dotfiles if a Tiling WM is selected.
 
 - [X] Base Extra libs
 - [X] AUR Helper (yay)
@@ -79,8 +79,8 @@ The installation process is simple, just follow the steps until oh-my-zsh plugin
 
 ## Roadmap :calendar:
 
-- [X] AIS [Arch Install Script]
-- [X] ACS [Arch Config Script]
+- [X] AIS [Artix Install Script]
+- [X] ACS [Artix Config Script]
 
 ## Thanx helmuthdu :kissing_heart:
 
