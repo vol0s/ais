@@ -104,7 +104,7 @@ install_base_system() {
     [[ $? -ne 0 ]] && error_msg "Installing base system to ${MOUNTPOINT} failed. Check error messages above."
     local PTABLE=$(parted -sl | grep "gpt")
     [[ -n $PTABLE ]] && basestrap "${MOUNTPOINT}" gptfdisk
-    artix_chroot "rc-update add connmand"
+    artix_chroot "rc-update add connmand default"
 }
 
 # CONFIGURE KEYMAP
@@ -139,7 +139,7 @@ configure_timezone() {
     print_title "[!] CONFIGURING TIMEZONE"
     artix_chroot "ln -sf /usr/share/zoneinfo/${TIMEZONE_PATH} /etc/localtime"
     artix_chroot "echo \"server \"$NTP_STRING\"\" >> /etc/ntpd.conf"
-    artix_chroot "rc-update add ntpd"
+    artix_chroot "rc-update add ntpd default"
 }
 
 # CONFIGURE HARDWARECLOCK
