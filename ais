@@ -28,7 +28,7 @@ config_mirrorlist() {
     echo " - Backing up the original mirrorlist..."
     mv -i /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.orig || echo " - No Backup needed..."
     echo " - Fetching mirrors located in $MIRROR_COUNTRY..."
-    reflector --country "$MIRROR_COUNTRY" --sort rate --save /etc/pacman.d/mirrorlist
+    reflector --country "$MIRROR_COUNTRY" --protocol https --sort rate --save /etc/pacman.d/mirrorlist
     chmod +r /etc/pacman.d/mirrorlist
 }
 
