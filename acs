@@ -1,28 +1,143 @@
 #!/bin/bash
 
 
-#shellcheck disable=SC2010,2154,1091
+#shellcheck disable=SC2010,2154,1091,2126
 
 # TODO: vim, hostblock, aide
 
-# LOADING SHARED FILE
+### -------------- CONFIGURATION VARS --------------- ###
 
-if [[ -f $(pwd)/shared ]]; then
-    source shared
-else
-    echo "missing file: shared"
-    exit 1
-fi
+USERNAME="user"
 
-install_os_utils() {
-    print_title "[!] INSTALLING OS UTILITIES"
-    sudo pacman -Sy cmake bc rsync mlocate bash-completion pkgstats git go curl wget zsh \
-                    atop htop neofetch zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip dnsutils rng-tools \
-                    dosfstools exfat-utils f2fs-tools fuse fuse-exfat mtpfs cmus shellcheck jq mate-polkit \
-                    playerctl firefox caja mat2 firejail ebtables dnsmasq meson ninja gtkmm3
+# --- COLORS --- #
+
+Bold=$(tput bold)
+Reset=$(tput sgr0)
+
+Red=$(tput setaf 1)
+Green=$(tput setaf 2)
+Yellow=$(tput setaf 3)
+
+BRed=${Bold}${Red}
+BGreen=${Bold}${Green}
+BYellow=${Bold}${Yellow}
+
+# --- PROMPT --- #
+
+prompt1="""
+Enter your option: """
+
+# --- IO FUNCTIONS --- #
+
+read_input_text() {
+    if [[ $AUTOMATIC_MODE -eq 1 ]]; then
+        OPTION=$2
+    else
+        printf "%s" "$1 [y/N]: "
+        read -r OPTION
+        echo ""
+    fi
+    OPTION=$(echo "$OPTION" | tr '[:upper:]' '[:lower:]')
 }
 
-# Install security tools
+print_line() {
+    printf "%$(tput cols)s\n" | tr ' ' '-'
+}
+
+print_title() {
+    clear
+    print_line
+    echo -e "# ${Bold}$1${Reset}"
+    print_line
+    echo ""
+}
+
+print_info() {
+    T_COLS=$(tput cols)
+    echo -e "${Bold}$1${Reset}\n" | fold -sw $(( T_COLS - 18 )) | sed 's/^/\t/'
+}
+
+error_msg() {
+    local _msg="${1}"
+    echo -e "${Red}${_msg}${Reset}"
+    exit 1
+}
+
+print_warning() {
+    T_COLS=$(tput cols)
+    echo -e "${BYellow}$1${Reset}\n" | fold -sw $(( T_COLS - 1 ))
+}
+
+print_danger() {
+    T_COLS=$(tput cols)
+    echo -e "${BRed}$1${Reset}\n" | fold -sw $(( T_COLS - 1 ))
+}
+
+print_success() {
+    T_COLS=$(tput cols)
+    echo -e "${BGreen}$1${Reset}\n" | fold -sw $(( T_COLS - 1 ))
+}
+
+invalid_option() {
+    print_line
+    echo "Invalid option. Try another one."
+    pause_function
+}
+
+pause_function() {
+    print_line
+    if [[ $AUTOMATIC_MODE -eq 0 ]]; then
+        read -e -sn 1 -p "Press enter to continue..."
+    fi
+}
+
+# --- TRAP SIGINT --- #
+
+trap ctrl_c INT
+
+ctrl_c() {
+    print_warning "[!] CTRL-C Detected"
+    read_input_text "Do you want to stop the execution of the script?"
+    if [[ $OPTION == y ]]; then
+        exit 1
+    fi
+}
+
+# --- CHECK FUNCTS --- #
+
+check_user() {
+    if [[ "$(id -u)" == "0" ]]; then
+        error_msg "ERROR! You must execute the script as a normal user."
+    fi
+}
+
+check_archlinux() {
+    if [[ ! -e /etc/arch-release ]]; then
+        error_msg "ERROR! You must execute the script on Arch Linux."
+    fi
+}
+
+# --- MISC FUNCTS --- #
+
+system_update() {
+    sudo pacman -Syu --noconfirm
+}
+
+contains_element() {
+    for e in "${@:2}"; do [[ "$e" == "$1" ]] && break; done;
+}
+
+# --- BASE OS UTILS --- #
+
+install_os_utils() {
+    print_title "[!] INSTALLING UNIVERSAL BASE OS UTILITIES"
+    sudo pacman -Sy cmake bc rsync mlocate bash-completion pkgstats go zsh jq \
+                    htop zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip \
+                    dosfstools exfat-utils f2fs-tools fuse fuse-exfat mtpfs cmus shellcheck \
+                    mat2 firejail ebtables dnsmasq meson ninja gtkmm3 dnsutils rng-tools
+}
+
+# --- SECURITY TOOLS --- #
 
 install_doas() {
     yay -Sy doas
@@ -56,21 +171,26 @@ security_handler() {
     print_title "[!] H4x0r T00Lz"
     read_input_text "Want to install blackarch repos?"
     if [[ $OPTION == y ]]; then
+        print_line
         blackarch_install
     fi
-    print_title "[!] Hardening Kernel"
+    print_title "[!] Kernel Hardening"
+    print_danger "[*] The system may becom unusable"
     read_input_text "Want to harden kernel params?"
     if [[ $OPTION == y ]]; then
-        kernel_harden $1
+        print_line
+        kernel_harden "$1"
     fi
-    print_title "[!] Installing doas"
+    print_title "[!] Installing opendoas"
+    print_warning "[*] The system may become unstable"
     read_input_text "Want to replace 'sudo' with 'doas'?"
     if [[ $OPTION == y ]]; then
+        print_line
         install_doas
     fi
 }
 
-# Install Blutooth
+# --- BLUETOOTH --- #
 
 install_bluetooth() {
     print_title "[!] INSTALLING BLUETOOTH"
@@ -86,14 +206,14 @@ install_bluetooth() {
     fi
 }
 
-# Install colored utilities
+# --- COLORED TOOLS --- #
 
 install_colored() {
     print_title "[!] INSTALLING COLORED UTILS"
     sudo pacman -Sy --noconfirm lsd bat grc
 }
 
-# Install Yay
+# --- AUR HELPER (YAY) --- #
 
 install_yay() {
     print_title "[!] INSTALLING YAY"
@@ -103,18 +223,18 @@ install_yay() {
     makepkg -csi --noconfirm
 }
 
-# Installing oh-my-zsh and plugins
+# --- OH MY ZSH --- #
 
 install_zsh_plugins() {
     print_title "[!] INSTALLING ZSH PLUGINS"
-    sh -c \\"$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)\\"
+    sh -c \\"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\\" "" --unattended
     git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"/themes/powerlevel10k
     git clone https://github.com/zsh-users/zsh-completions "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"/plugins/zsh-completions
     git clone https://github.com/zsh-users/zsh-autosuggestions "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"/plugins/zsh-autosuggestions
     git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"/plugins/zsh-syntax-highlighting
 }
 
-# Configuring sddm
+# --- SDDM SESSION MANAGER --- #
 
 configure_sddm() {
     print_title "[!] CONFIGURING SDDM"
@@ -130,7 +250,7 @@ configure_sddm() {
     sudo systemctl enable sddm
 }
 
-# Install Virtualization
+# --- VIRTUALIZATION --- #
 
 install_virtualbox() {
     print_title "[!] INSTALLING virtualbox"
@@ -173,7 +293,7 @@ virtualization_handler(){
     fi
 }
 
-# Podman Containerization
+# --- CONTAINERS (PODMAN) --- #
 
 containerization_handler(){
     print_title "[!] INSTALLING CONTAINERS"
@@ -189,6 +309,8 @@ containerization_handler(){
     fi
 }
 
+# --- SPICETIFY --- # 
+
 spicetify_install() {
     sudo chmod a+wr /opt/spotify
     sudo chmod a+wr /opt/spotify/Apps -R
@@ -203,12 +325,19 @@ spicetify_install() {
     spicetify apply
 }
 
+# --- VSCODIUM PLUGINS--- #
+
 vscodium_autotune() {
-    codium --install-extension coenraads.bracket-pair-colorizer-2
-    codium --install-extension itsjonq.owlet
-    codium --install-extension timonwong.shellcheck
-    codium --install-extension equinusocio.vsc-material-theme-icons
+    if command -v codium &> /dev/null
+    then
+        codium --install-extension coenraads.bracket-pair-colorizer-2
+        codium --install-extension itsjonq.owlet
+        codium --install-extension timonwong.shellcheck
+        codium --install-extension equinusocio.vsc-material-theme-icons
+    fi
 }
+
+# --- COMMON RICING CONFIG --- #
 
 common_rice() {
     print_title "[!] INSTALLING COMMON RICE"
@@ -218,7 +347,8 @@ common_rice() {
     sudo sed -i '33 s/#Color/Color/g' /etc/pacman.conf
     # Setting Theme and icon Theme
     gsettings set org.gnome.desktop.interface gtk-theme "$1"
-    sudo pacman -Sy --noconfirm papirus-icon-theme light mpc mpd mpv feh kitty qutebrowser ranger
+    sudo pacman -Sy --noconfirm papirus-icon-theme light mpc mpd mpv feh kitty qutebrowser ranger mate-polkit \
+                      playerctl firefox caja
     gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
     # gpg --keyserver keyserver.ubuntu.com --recv-key 8FD3D9A8D3800305A9FFF259D1742AD60D811D58
     yay -Sy --answerclean A --answerdiff N papirus-folders-git cava-git vscodium-bin nerd-fonts-noto spotify \
@@ -237,16 +367,16 @@ common_rice() {
     mkdir Pictures && mkdir Pictures/screenshots
 }
 
-# i3-gaps Rice
+# --- i3 RICE --- #
+
+compile_polybar() {
+    yay -Sy --answerclean A --answerdiff N --noconfirm polybar-git
+}
 
 i3_rice() {
     print_title "[!] INSTALLING i3 RICE SOFTWARE"
     sudo pacman -Sy --noconfirm xorg xorg-server picom dunst i3-gaps rofi scrot maim xclip nitrogen xautolock
     yay -Sy --answerclean A --answerdiff N --noconfirm i3lock-fancy
-}
-
-compile_polybar() {
-    yay -Sy --answerclean A --answerdiff N --noconfirm polybar-git
 }
 
 i3_violet_rice() {
@@ -260,10 +390,10 @@ i3_violet_rice() {
 }
 
 i3_dracula_rice() {
-    echo "todo"
+    echo "pass"
 }
 
-# Compiling & installing waybar
+# --- SWAY RICE --- #
 
 compile_waybar() {
     print_title "[!] COMPILING WAYBAR"
@@ -275,23 +405,12 @@ compile_waybar() {
     sudo ninja -C build install
 }
 
-# SwayWM Rice
-
 sway_rice() {
     print_title "[!] INSTALLING SWAY RICE SOFTWARE"
     sudo pacman -Sy --noconfirm xorg-server-xwayland sway wl-clipboard mako \
                 wofi swayidle grim slurp qt5-wayland
     yay -Sy --answerclean A --answerdiff N swaylock-effects-git
 }
-
-# Sway Custom Dracula Flavour # NOT FINISHED
-
-sway_dracula_rice() {
-    common_rice "ant-dracula-gtk-theme"
-    echo "test"
-}
-
-# Sway Custom Violet Flavour
 
 sway_violet_rice() {
     sudo pacman -Sy materia-gtk-theme
@@ -303,7 +422,12 @@ sway_violet_rice() {
     bash vsrd.sh &
 }
 
-# Ricing Handler
+sway_dracula_rice() {
+    # common_rice "ant-dracula-gtk-theme"
+    echo "pass"
+}
+
+# --- RICING HANDLER --- #
 
 ricing_handler() {
     print_title "[!] R U RICING OR NOT"
@@ -345,6 +469,16 @@ ricing_handler() {
     fi
 }
 
+# --- WRAP UP --- #
+
+wrap_up() {
+    sudo rm -rf /tmp/*
+    print_success "[!] Script ended successfuly"
+    pause_function
+}
+
+# --- MAIN FLOW --- #
+
 WS=$(pwd)
 check_archlinux
 check_user
@@ -358,5 +492,5 @@ configure_sddm
 virtualization_handler
 containerization_handler
 security_handler "$WS"
-sudo rm -rf /tmp/*
+wrap_up
 sudo reboot
