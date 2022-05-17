@@ -16,10 +16,10 @@ fi
 install_os_utils() {
     print_title "[!] INSTALLING OS UTILITIES"
     print_info "This will install tools like "
-    sudo pacman -Sy --noconfirm cmake bc rsync mlocate bash-completion pkgstats git go curl wget zsh \
+    sudo pacman -Sy cmake bc rsync mlocate bash-completion pkgstats git go curl wget zsh \
                     atop htop neofetch zip unzip unrar p7zip lzop cpio ntfs-3g python python-pip dnsutils rng-tools \
                     dosfstools exfat-utils f2fs-tools fuse fuse-exfat mtpfs cmus shellcheck jq mate-polkit \
-                    molecule playerctl firefox caja mat2 firejail ebtables dnsmasq meson ninja gtkmm3
+                    playerctl firefox caja mat2 firejail ebtables dnsmasq meson ninja gtkmm3
 }
 
 
