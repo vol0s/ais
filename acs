@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 #shellcheck disable=SC2010,2154,1091
 
 # TODO: vim, hostblock, aide
@@ -21,7 +22,6 @@ install_os_utils() {
                     playerctl firefox caja mat2 firejail ebtables dnsmasq meson ninja gtkmm3
 }
 
-
 # Install security tools
 
 install_doas() {
@@ -39,6 +39,13 @@ kernel_harden() {
     sudo sysctl --system
 }
 
+blackarch_install() {
+    curl -O https://blackarch.org/strap.sh
+    chmod +x strap.sh
+    sudo ./strap.sh
+    sudo pacman -Syu
+}
+
 security_handler() {
     print_title "[!] INSTALLING SECURITY TOOLS"
     sudo pacman -Sy --noconfirm rkhunter clamav logwatch rmlint lynis checksec arch-audit arpwatch
@@ -46,6 +53,11 @@ security_handler() {
     sudo freshclam -d -c 1
     sudo rkhunter --propupd
     sudo rkhunter --update
+    print_title "[!] H4x0r T00Lz"
+    read_input_text "Want to install blackarch repos?"
+    if [[ $OPTION == y ]]; then
+        blackarch_install
+    fi
     print_title "[!] Hardening Kernel"
     read_input_text "Want to harden kernel params?"
     if [[ $OPTION == y ]]; then
